@@ -7,6 +7,7 @@ A collection of Python utilities for analyzing, extracting, and repacking the ST
 1. **uw-strings-analyzer.py** - Analyzes the structure of STRINGS.PAK, showing the Huffman tree, block information, and more
 2. **uw-strings-extractor.py** - Extracts all strings from STRINGS.PAK into a text file
 3. **uw-strings-packer.py** - Repacks modified strings back into a new STRINGS.PAK file
+4. **uw-strings-translator.py** - Tool for translating Ultima Underworld game text strings using Ollama (for local LLM translation) or Transformers (using Hugging Face's translation models) (more [README_translator.md](/README_translator.md) )
 
 ## Requirements
 
@@ -115,4 +116,4 @@ This project is licensed under the MIT License with additional terms - see the [
 
 ## Credits
 
-Copyright (c) 2024 Florian Fischer
+Copyright (c) 2025 Florian Fischer
