@@ -1,4 +1,4 @@
-# Ultima Underworld STRINGS.PAK Tools
+# Ultima Underworld Conversation Tools
 
 A collection of Python utilities for analyzing, extracting, and repacking the STRINGS.PAK file from Ultima Underworld games, as well as working with conversation scripts from CNV.ARK. These tools allow you to examine the structure of game files, extract content, modify strings, and even run conversation scripts.
 
