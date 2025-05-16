@@ -1,0 +1,1 @@
+python uw-strings-translator.py  uw-strings.txt uw-strings-translated.txt --source English --target German --handle-umlauts ascii --backend transformers --batch-size 12 --chunk-size 96 --context --validate --max-ratio 5 --use-original-if-too-long --preserve-special-chars "_@"
