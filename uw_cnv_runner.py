@@ -163,7 +163,8 @@ class UltimaUnderworldVM:
                     
                     current_block = ['']  # Initialize with empty string at index 0
                     
-                    print(f"Found string block: {current_block_id}")
+                    if self.debug:
+                        print(f"Found string block: {current_block_id}")
                     continue
                 
                 # Process string entry
@@ -1414,7 +1415,7 @@ def main():
     """Main function to run the Ultima Underworld VM"""
     parser = argparse.ArgumentParser(description='Ultima Underworld Conversation VM')
     parser.add_argument('conversation', help='Path to the conversation ASM file')
-    parser.add_argument('--strings', help='Path to the string block file', default='uw-strings_block_0f0c.txt')
+    parser.add_argument('--strings', help='Path to the string block file', default='uw-strings.txt')
     parser.add_argument('--debug', action='store_true', help='Enable debug logging')
     args = parser.parse_args()
     
