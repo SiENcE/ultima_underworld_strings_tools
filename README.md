@@ -1,32 +1,39 @@
-# Ultima Underworld Conversation Tools
+# Ultima Underworld Tools
 
-A collection of Python utilities for analyzing, extracting, and repacking the STRINGS.PAK file from Ultima Underworld games, as well as working with conversation scripts from CNV.ARK. These tools allow you to examine the structure of game files, extract content, modify strings, and even run conversation scripts.
+A collection of Python utilities for analyzing, extracting, and modifying content from Ultima Underworld games. These tools allow you to examine the structure of STRINGS.PAK and CNV.ARK files, extract and modify game strings and conversations, and even run conversation scripts in a virtual machine.
 
 ## Tools Included
 
+### String Tools
 1. **uw-strings-analyzer.py** - Analyzes the structure of STRINGS.PAK, showing the Huffman tree, block information, and more
 2. **uw-strings-extractor.py** - Extracts all strings from STRINGS.PAK into a text file
 3. **uw-strings-packer.py** - Repacks modified strings back into a new STRINGS.PAK file
-4. **uw-strings-translator.py** - Tool for translating Ultima Underworld game text strings using Ollama (for local LLM translation) or Transformers (using Hugging Face's translation models) (more [README_translator.md](/README_translator.md) )
-5. **uw_cnv_extractor_decompress_decompiler.py** - Extracts, decompresses, and decompiles conversation scripts from CNV.ARK
-6. **uw_cnv_runner.py** - Virtual machine for executing and interacting with the conversation scripts 
+4. **uw-strings-translator.py** - Tool for translating Ultima Underworld game text strings using Ollama (for local LLM translation) or Transformers (see [README_translator.md](/README_translator.md))
+
+### Conversation Tools
+5. **uw_cnv_extractor_decompress_decompiler.py** - Extracts conversations from CNV.ARK, decompresses UW2 archives, and decompiles bytecode to readable assembly
+6. **uw_cnv_compiler.py** - Compiles conversation assembly files back to binary format and can update a slot in the CNV.ARK file
+7. **uw_cnv_runner.py** - A virtual machine for running and testing Ultima Underworld conversation scripts
 
 ## Requirements
 
 - Python 3.6 or higher
+- Optional dependencies for the translator tool: Ollama or Transformers (see README_translator.md)
 
 ## Installation
 
 Clone this repository or download the scripts:
 
 ```bash
-git clone https://github.com/yourusername/uw-strings-tools.git
-cd uw-strings-tools
+git clone https://github.com/SiENcE/ultima_underworld_tools.git
+cd ultima_underworld_tools
 ```
 
 ## Usage
 
-### 1. Analyzing STRINGS.PAK
+### String Tools
+
+#### 1. Analyzing STRINGS.PAK
 
 Use the analyzer to examine the structure of your STRINGS.PAK file:
 
@@ -49,7 +56,7 @@ This will generate a detailed analysis including:
 
 The analysis will also be exported to a `strings-analysis.json` file.
 
-### 2. Extracting Strings
+#### 2. Extracting Strings
 
 To extract all strings from STRINGS.PAK to a text file:
 
@@ -61,22 +68,7 @@ This assumes `strings.pak` is in the current directory. It will:
 - Extract all strings into `uw-strings.txt`
 - Save Huffman tree and block metadata to `uw-strings-metadata.json` (needed for repacking)
 
-The extracted file format is:
-
-```
-STRINGS.PAK: 123 string blocks.
-
-block: 0001; 15 strings.
-0: This is string 0
-1: This is string 1
-...
-
-block: 0002; 8 strings.
-0: Another block string
-...
-```
-
-### 3. Modifying and Repacking Strings
+#### 3. Modifying and Repacking Strings
 
 1. Edit the extracted `uw-strings.txt` file with any text editor
 2. Run the packer to create a new STRINGS.PAK file:
@@ -85,47 +77,62 @@ block: 0002; 8 strings.
 python uw-strings-packer.py
 ```
 
-The packer will:
-- Read the Huffman tree from `uw-strings-metadata.json`
-- Parse the modified `uw-strings.txt` file
-- Create a new `strings.pak` file
-- Verify the created file is readable
-- Compare with an original file if available (`original_strings.pak`)
+#### 4. Translating Strings
 
-### 4. Extracting and Decompiling CNV.ARK
+See [README_translator.md](/README_translator.md) for detailed instructions on using the translator tool.
 
-Extract conversation scripts from CNV.ARK and decompile them to assembly:
+### Conversation Tools
+
+#### 1. Extracting and Decompiling Conversations
+
+Extract all conversations from CNV.ARK and decompile to assembly:
 
 ```bash
-python uw_cnv_extractor_decompress_decompiler.py path/to/CNV.ARK -o output_directory -v
+python uw_cnv_extractor_decompress_decompiler.py path/to/cnv.ark --output-dir conversations
 ```
 
 This will:
-- Extract all conversation slots from CNV.ARK
-- Decompress the data if it's compressed
-- Decompile the bytecode to human-readable assembly
-- Generate binary files (.bin), metadata (.txt), and assembly code (.asm) for each conversation
+- Automatically detect and decompress UW2 archives if needed
+- Extract all conversation slots to individual binary and ASM files
+- Create detailed metadata files with information about each conversation
 
-The output directory will contain files named `conversation_XXXX.bin`, `conversation_XXXX.txt`, and `conversation_XXXX.asm` where XXXX is the slot ID in hexadecimal.
-
-### 5. Running Conversation Scripts
-
-Run the extracted conversation scripts using the conversation VM:
+You can also decompile a single binary conversation file:
 
 ```bash
-python uw_cnv_runner.py path/to/conversation_XXXX.asm --strings path/to/uw-strings.txt --debug
+python uw_cnv_extractor_decompress_decompiler.py path/to/conversation_XXXX.bin --decompile-binary
 ```
 
-This will:
-- Load the specified conversation assembly code
-- Load the string block referenced by the conversation
-- Execute the conversation script
-- Simulate NPC dialogue and player responses
-- Allow you to interact with the conversation through prompts
+#### 2. Compiling Conversations
 
-The conversation runner provides a virtual machine that simulates the game's conversation system, allowing you to test and explore dialogue trees.
+After modifying a conversation ASM file, compile it back to binary format:
 
-## Notes on Editing Strings
+```bash
+python uw_cnv_compiler.py path/to/conversation_XXXX.asm --output output.bin
+```
+
+You can also update the original CNV.ARK file:
+
+```bash
+python uw_cnv_compiler.py path/to/conversation_XXXX.asm --update-cnv path/to/cnv.ark
+```
+
+#### 3. Running Conversations
+
+Test a conversation script using the conversation virtual machine:
+
+```bash
+python uw_cnv_runner.py path/to/conversation_XXXX.asm --strings path/to/string_block.txt
+```
+
+This interactive tool allows you to:
+- Execute conversation scripts
+- Make dialogue choices
+- Test conversation logic
+- Simulate game world variables
+
+## Notes on Editing
+
+### Editing Strings
 
 When modifying the extracted strings:
 - Keep the `block:` and string index format intact
@@ -134,7 +141,17 @@ When modifying the extracted strings:
 - Don't remove the ending pipe character (`|`) if present
 - Adding new blocks or changing block IDs is not recommended
 
+### Editing Conversations
+
+When modifying conversation assembly files:
+- Keep label definitions intact (lines ending with `:`)
+- Instructions should maintain proper format (opcode with/without operand)
+- Branches and jumps reference labels by name
+- Don't modify the `Import` section comments as they're used by the compiler
+
 ## Technical Details
+
+### STRINGS.PAK Format
 
 STRINGS.PAK uses Huffman compression with the following structure:
 - File header with Huffman tree nodes
@@ -144,10 +161,16 @@ STRINGS.PAK uses Huffman compression with the following structure:
   - String offset table
   - Huffman-encoded string data
 
-CNV.ARK contains conversation scripts with the following components:
-- Header with metadata and import information
-- Bytecode for the conversation VM
-- References to strings in STRINGS.PAK
+### CNV.ARK Format
+
+The CNV.ARK file contains conversation scripts and uses:
+- Compressed format in UW2 (uncompressed in UW1)
+- File header with slot offsets
+- Conversation headers with Huffman codes
+- Import tables listing variables and functions
+- Bytecode for script execution
+
+See spec.txt for complete technical details on the conversation format.
 
 ## License
 
