@@ -448,23 +448,125 @@ class ConversationExtractor:
             for instr in conversation["decompiled_code"]:
                 f.write(f"{instr}\n")
 
+def decompile_binary_file(binary_file, output_file=None, verbose=False):
+    """Decompile a single binary conversation file."""
+    try:
+        # If output file not specified, create one based on input name
+        if output_file is None:
+            output_file = os.path.splitext(binary_file)[0] + ".asm"
+        
+        # Create a decompiler instance
+        decompiler = ConversationDecompiler()
+        
+        print(f"Reading binary file: {binary_file}")
+        with open(binary_file, 'rb') as f:
+            # Read header
+            header = {}
+            header["unknown1"] = struct.unpack("<H", f.read(2))[0]
+            header["unknown2"] = struct.unpack("<H", f.read(2))[0]
+            header["code_size"] = struct.unpack("<H", f.read(2))[0]
+            header["unknown3"] = struct.unpack("<H", f.read(2))[0]
+            header["unknown4"] = struct.unpack("<H", f.read(2))[0]
+            header["string_block"] = struct.unpack("<H", f.read(2))[0]
+            header["memory_slots"] = struct.unpack("<H", f.read(2))[0]
+            header["num_imports"] = struct.unpack("<H", f.read(2))[0]
+            
+            if verbose:
+                print(f"Header: {header}")
+            
+            # Read imports
+            imports = []
+            for i in range(header["num_imports"]):
+                # Read import record
+                name_length = struct.unpack("<H", f.read(2))[0]
+                name = f.read(name_length).decode('ascii', errors='replace')
+                id_or_addr = struct.unpack("<H", f.read(2))[0]
+                unknown = struct.unpack("<H", f.read(2))[0]
+                import_type = struct.unpack("<H", f.read(2))[0]
+                return_type = struct.unpack("<H", f.read(2))[0]
+                
+                import_record = {
+                    "name": name,
+                    "id_or_addr": id_or_addr,
+                    "import_type": import_type, 
+                    "return_type": return_type,
+                    "is_variable": import_type == 0x010F,
+                    "is_function": import_type == 0x0111
+                }
+                
+                imports.append(import_record)
+                
+                if verbose:
+                    print(f"Import {i}: {name}")
+            
+            # Read code section
+            code_start_pos = f.tell()
+            code_data = f.read(header["code_size"] * 2)  # Each instruction is 2 bytes
+            
+            if verbose:
+                print(f"Code section: {len(code_data)} bytes")
+            
+            # Decompile the code section
+            decompiled_code = decompiler.decompile(code_data)
+            
+            # Write the decompiled assembly
+            with open(output_file, 'w', encoding='utf-8') as out_file:
+                out_file.write("; Decompiled conversation script\n")
+                out_file.write(f"; Binary File: {os.path.basename(binary_file)}\n")
+                out_file.write(f"; String Block: {header['string_block']}\n\n")
+                
+                # Write imports as comments
+                out_file.write("; Imported Functions/Variables:\n")
+                for i, imp in enumerate(imports):
+                    if imp["is_function"]:
+                        out_file.write(f"; Import {i}: Function {imp['name']}, ID: {imp['id_or_addr']}\n")
+                    elif imp["is_variable"]:
+                        out_file.write(f"; Import {i}: Variable {imp['name']}, Addr: 0x{imp['id_or_addr']:04X}\n")
+                
+                out_file.write("\n")
+                
+                # Write decompiled code
+                for instr in decompiled_code:
+                    out_file.write(f"{instr}\n")
+            
+            print(f"Decompiled code written to {output_file}")
+            return True
+            
+    except Exception as e:
+        print(f"Error decompiling binary file: {e}")
+        import traceback
+        traceback.print_exc()
+        return False
+
 def main():
     parser = argparse.ArgumentParser(description="Extract and decompile conversations from Ultima Underworld CNV.ARK")
-    parser.add_argument('input_file', help='Path to CNV.ARK file')
+    parser.add_argument('input_file', help='Path to CNV.ARK file or binary conversation file')
     parser.add_argument('-o', '--output-dir', default='conversations', 
                         help='Output directory for extracted conversations')
     parser.add_argument('-v', '--verbose', action='store_true', 
                         help='Enable verbose output')
+    parser.add_argument('--decompile-binary', action='store_true',
+                        help='Decompile a single binary conversation file')
+    parser.add_argument('--output-file', 
+                        help='Output file for decompiled code (only used with --decompile-binary)')
     args = parser.parse_args()
     
-    print(f"Extracting and decompiling conversations from {args.input_file}...")
-    extractor = ConversationExtractor(args.input_file, args.output_dir, args.verbose)
-    
-    if extractor.extract_all():
-        print(f"Extraction complete. Files saved to {args.output_dir}/")
+    if args.decompile_binary:
+        print(f"Decompiling binary file {args.input_file}...")
+        if decompile_binary_file(args.input_file, args.output_file, args.verbose):
+            print("Decompilation complete.")
+        else:
+            print("Decompilation failed.")
+            return 1
     else:
-        print("Extraction failed.")
-        return 1
+        print(f"Extracting and decompiling conversations from {args.input_file}...")
+        extractor = ConversationExtractor(args.input_file, args.output_dir, args.verbose)
+        
+        if extractor.extract_all():
+            print(f"Extraction complete. Files saved to {args.output_dir}/")
+        else:
+            print("Extraction failed.")
+            return 1
     
     return 0
 
