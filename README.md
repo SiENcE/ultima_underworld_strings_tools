@@ -11,7 +11,7 @@ A collection of Python utilities for analyzing, extracting, and modifying conten
 4. **uw-strings-translator.py** - Tool for translating Ultima Underworld game text strings using Ollama (for local LLM translation) or Transformers (see [README_translator.md](/README_translator.md))
 
 ### Conversation Tools
-5. **uw_cnv_extractor_decompress_decompiler.py** - Extracts conversations from CNV.ARK, decompresses UW2 archives, and decompiles bytecode to readable assembly
+5. **uw_cnv_decompiler.py** - Extracts conversations from CNV.ARK, decompresses UW2 archives, and decompiles bytecode to readable assembly
 6. **uw_cnv_compiler.py** - Compiles conversation assembly files back to binary format and can update a slot in the CNV.ARK file
 7. **uw_cnv_runner.py** - A virtual machine for running and testing Ultima Underworld conversation scripts
 
