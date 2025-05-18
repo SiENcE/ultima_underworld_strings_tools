@@ -212,38 +212,66 @@ class UltimaUnderworldVM:
         else:
             return f"[Invalid string ID: {string_id}]"
     
+    def _resolve_argument(self, arg_str, opcode_name, current_pc):
+        """Resolve an instruction argument, handling labels if needed."""
+        # First check if it's a symbolic label
+        if arg_str in self.labels:
+            target_pos = self.labels[arg_str]
+            
+            # Branch instructions use relative offsets
+            if opcode_name in ['BEQ', 'BNE', 'BRA']:
+                # Calculate relative offset from current position
+                # PC will be at the next instruction (current_pc + 2) when branch is evaluated
+                offset = target_pos - (current_pc + 2)
+                self.log(f"Branch from {current_pc} to label '{arg_str}' at {target_pos}, offset={offset}")
+                return offset
+            
+            # JMP and CALL use absolute positions
+            elif opcode_name in ['JMP', 'CALL']:
+                self.log(f"{opcode_name} to label '{arg_str}' at position {target_pos}")
+                return target_pos
+        
+        # Try hex values
+        if arg_str.startswith('0x'):
+            try:
+                return int(arg_str, 16)
+            except ValueError:
+                print(f"Warning: Invalid hex value '{arg_str}', using 0")
+                return 0
+        
+        # Try decimal values
+        try:
+            return int(arg_str)
+        except ValueError:
+            # If we get here, it's an invalid argument
+            print(f"Warning: Unknown label or invalid number '{arg_str}', using 0")
+            return 0
+    
     def parse_asm(self, filename):
         """Parse the ASM file into executable code"""
         try:
             with open(filename, 'r', encoding='utf-8') as f:
                 lines = f.readlines()
             
-            # Extract conversation metadata
-            conv_slot = None
-            string_block = None
-            
+            # Extract metadata from comments
             for line in lines[:20]:  # Check first few lines for metadata
+                line = line.strip()
                 if "; Slot:" in line:
-                    conv_slot = line.split("Slot:")[1].strip()
-                    if conv_slot.startswith("0"):
-                        # Convert from hex (like 010C) to decimal
-                        conv_slot = int(conv_slot, 16)
-                    else:
-                        conv_slot = int(conv_slot)
+                    slot_str = line.split('Slot:')[1].strip()
+                    if slot_str.startswith("0x"):
+                        self.slot_idx = int(slot_str, 16)
+                    elif "0" <= slot_str[0] <= "9":
+                        self.slot_idx = int(slot_str, 16) if slot_str.startswith("0") else int(slot_str)
+                    self.log(f"Found slot ID: 0x{self.slot_idx:04X}")
                     
                 elif "; String Block:" in line:
-                    string_block = line.split("String Block:")[1].strip()
-                    if string_block.startswith("0"):
-                        # Convert from hex to decimal
-                        string_block = int(string_block, 16)
-                    else:
-                        string_block = int(string_block)
-            
-            print(f"Conversation slot: {conv_slot}, String block: {string_block}")
-            if string_block:
-                self.set_string_block(string_block)
+                    block_str = line.split('String Block:')[1].strip()
+                    self.string_block = int(block_str)
+                    self.log(f"Found string block: {self.string_block}")
+                    self.set_string_block(self.string_block)
             
             # First pass to identify labels
+            self.labels = {}
             pc = 0
             for line in lines:
                 line = line.strip()
@@ -254,6 +282,7 @@ class UltimaUnderworldVM:
                     # This is a label definition
                     label = line.split(':')[0].strip()
                     self.labels[label] = pc
+                    self.log(f"Found label '{label}' at position {pc}")
                 elif not line.startswith(';'):
                     # This is an instruction
                     if ' ' in line:
@@ -263,8 +292,11 @@ class UltimaUnderworldVM:
                         # Single opcode
                         pc += 1
             
+            self.log(f"Identified {len(self.labels)} labels: {self.labels}")
+            
             # Second pass to load the code
             self.code = []
+            pc = 0
             for line in lines:
                 line = line.strip()
                 
@@ -280,33 +312,45 @@ class UltimaUnderworldVM:
                 if ' ' in line:
                     # Opcode with argument
                     parts = line.split(' ', 1)
-                    opcode = parts[0].strip().upper()
+                    opcode_name = parts[0].strip().upper()
                     arg_str = parts[1].strip()
                     
                     # Handle special cases with comments
                     if ';' in arg_str:
                         arg_str = arg_str.split(';')[0].strip()
                     
-                    # Convert argument to number
-                    if arg_str.startswith('0x'):
-                        arg = int(arg_str, 16)
-                    else:
-                        arg = int(arg_str)
+                    # Get opcode value
+                    opcode_val = self.get_opcode(opcode_name)
                     
-                    # Add the opcode and argument
-                    self.code.append(self.get_opcode(opcode))
-                    self.code.append(arg)
+                    # Parse the argument - handle symbolic labels
+                    arg_val = self._resolve_argument(arg_str, opcode_name, pc)
+                    
+                    # Add to code
+                    self.code.append(opcode_val)
+                    self.code.append(arg_val)
+                    
+                    self.log(f"Instruction at {pc}: {opcode_name} {arg_val}")
+                    pc += 2
                 else:
                     # Single opcode
-                    opcode = line.upper()
-                    self.code.append(self.get_opcode(opcode))
+                    opcode_name = line.upper()
+                    opcode_val = self.get_opcode(opcode_name)
+                    
+                    self.code.append(opcode_val)
+                    self.log(f"Instruction at {pc}: {opcode_name}")
+                    pc += 1
             
             print(f"Parsed {len(self.code)} instruction values")
+            if self.labels:
+                print(f"Found {len(self.labels)} labels")
+            
+            return True
             
         except Exception as e:
             print(f"Error parsing ASM: {e}")
             import traceback
             traceback.print_exc()
+            return False
     
     def get_opcode(self, opcode_name):
         """Convert opcode name to numeric value"""

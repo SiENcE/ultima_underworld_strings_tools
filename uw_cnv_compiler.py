@@ -144,7 +144,12 @@ class ConversationCompiler:
                     block_str = line.split('String Block:')[1].strip()
                     self.string_block = int(block_str)
                     self.log(f"Found string block: {self.string_block}")
-            
+
+                elif '; Memory Slots:' in line:
+                    slots_str = line.split('Memory Slots:')[1].strip()
+                    self.memory_slots = int(slots_str)
+                    self.log(f"Found memory slots: {self.memory_slots}")
+
             # Parse import section
             import_section = False
             for line in lines:
@@ -301,16 +306,26 @@ class ConversationCompiler:
                 offset = target_pos - (self.current_pos + 2)
                 self.log(f"Branch from {self.current_pos} to {target_pos}, offset={offset}")
                 return offset
-            else:
+            elif opcode_name in ['JMP', 'CALL']:
                 # For JMP and CALL, use absolute position
+                self.log(f"{opcode_name} to label '{arg_str}' at position {target_pos}")
                 return target_pos
         
         # Handle hex values
         if arg_str.startswith('0x'):
-            return int(arg_str, 16)
+            try:
+                return int(arg_str, 16)
+            except ValueError:
+                print(f"Error: Invalid hex value: {arg_str}")
+                return 0
         
         # Handle decimal values
-        return int(arg_str)
+        try:
+            return int(arg_str)
+        except ValueError:
+            print(f"Error: Cannot resolve argument '{arg_str}' - not a valid number or label")
+            # Return 0 as fallback to avoid crashing
+            return 0
     
     def _get_opcode_value(self, opcode_name):
         """Convert opcode name to its numeric value."""
