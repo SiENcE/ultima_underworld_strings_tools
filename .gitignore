@@ -1,2 +1,7 @@
 cnv/
 alt/
+UWScript/samples_wrong/
+UWScript/tests/
+UWScript/__pycache__/
+UWScript/html_console/
+__pycache__/

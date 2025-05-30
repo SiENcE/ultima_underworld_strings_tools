@@ -202,13 +202,82 @@ class UltimaUnderworldVM:
             print(f"String block {block_id} not found")
             return False
     
-    def get_string(self, string_id):
-        """Get a string from the current string block"""
+    def process_text_substitutions(self, text):
+        """
+        Process UW text substitutions in a string.
+        
+        Format: @XY<num>
+        X: G=global, S=stack, P=pointer
+        Y: S=string, I=integer  
+        """
+        import re
+        
+        def substitute_match(match):
+            full_match = match.group(0)
+            source = match.group(1)  # G, S, or P
+            type_char = match.group(2)  # S or I  
+            num = int(match.group(3))
+            
+            try:
+                if source == 'S':  # Stack variable
+                    # Stack variables are relative to base pointer
+                    addr = self.base_pointer + num
+                    value = self.get_mem(addr)
+                    
+                    if type_char == 'I':
+                        return str(value)
+                    elif type_char == 'S':
+                        return self.get_string_raw(value)
+                        
+                elif source == 'G':  # Game global
+                    # Game globals are at the start of memory
+                    value = self.get_mem(num)
+                    
+                    if type_char == 'I':
+                        return str(value)
+                    elif type_char == 'S':
+                        return self.get_string_raw(value)
+                        
+                elif source == 'P':  # Pointer variable
+                    # Pointer variables point to memory addresses
+                    ptr_addr = self.base_pointer + num
+                    ptr_value = self.get_mem(ptr_addr)
+                    value = self.get_mem(ptr_value)
+                    
+                    if type_char == 'I':
+                        return str(value)
+                    elif type_char == 'S':
+                        return self.get_string_raw(value)
+                        
+            except Exception as e:
+                self.log(f"Error processing substitution {full_match}: {e}")
+                return f"[ERROR:{full_match}]"
+            
+            return full_match
+        
+        # Pattern to match @XY<num>
+        pattern = r'@([GSP])([SI])(-?\d+)'
+        return re.sub(pattern, substitute_match, text)
+
+    def get_string_raw(self, string_id):
+        """Get string without substitution processing (to avoid recursion)"""
         if not self.current_string_block:
             return f"[No string block loaded]"
         
         if 0 <= string_id < len(self.current_string_block):
             return self.current_string_block[string_id]
+        else:
+            return f"[Invalid string ID: {string_id}]"
+
+    def get_string(self, string_id):
+        """Get a string from the current string block with text substitution processing"""
+        if not self.current_string_block:
+            return f"[No string block loaded]"
+        
+        if 0 <= string_id < len(self.current_string_block):
+            raw_string = self.current_string_block[string_id]
+            # Process text substitutions
+            return self.process_text_substitutions(raw_string)
         else:
             return f"[Invalid string ID: {string_id}]"
     
@@ -253,6 +322,19 @@ class UltimaUnderworldVM:
             with open(filename, 'r', encoding='utf-8') as f:
                 lines = f.readlines()
             
+            # Extract string literals from assembly code comments
+            self.string_literals = []
+            for line in lines:
+                if line.strip().startswith("; ") and ": \"" in line:
+                    try:
+                        # Extract string literal from comment
+                        parts = line.split(": \"")
+                        if len(parts) > 1:
+                            string_literal = parts[1].strip("\"\n")
+                            self.string_literals.append(string_literal)
+                    except:
+                        pass
+            
             # Extract metadata from comments
             for line in lines[:20]:  # Check first few lines for metadata
                 line = line.strip()
@@ -275,7 +357,8 @@ class UltimaUnderworldVM:
             pc = 0
             for line in lines:
                 line = line.strip()
-                if not line or line.startswith(';'):
+                # Skip comments and empty lines
+                if not line.strip() or line.strip().startswith(';'):
                     continue
                     
                 if ':' in line and not line.startswith(';'):
@@ -301,7 +384,7 @@ class UltimaUnderworldVM:
                 line = line.strip()
                 
                 # Skip comments and empty lines
-                if not line or line.startswith(';'):
+                if not line.strip() or line.strip().startswith(';'):
                     continue
                     
                 # Skip label definitions
@@ -490,16 +573,27 @@ class UltimaUnderworldVM:
         for i, value in enumerate(game_globals):
             self.memory[i] = value
         
+        # CRITICAL FIX: Adjust memory layout to avoid stack collision with user variables
         # Set up memory layout based on the spec
-        self.first_memory_slot = self.imported_globals_count
-        self.memory_slots = self.imported_globals_count + 32  # Typical memory slots allocation
-        self.base_pointer = self.memory_slots
-        self.stack_pointer = self.memory_slots
+        self.first_memory_slot = self.imported_globals_count  # 32
+        self.memory_slots = self.imported_globals_count + 32  # 64 
+        self.base_pointer = self.memory_slots  # 64
+        
+        # FIXED: Move stack much further away to avoid collision with arrays
+        # Arrays can be large (up to 100+ elements), so give plenty of space
+        self.stack_pointer = self.memory_slots + 512  # Start stack at 64 + 512 = 576
+        
+        print(f"Memory layout: globals=0-31, base_ptr={self.base_pointer}, stack_ptr={self.stack_pointer}")
     
+    #def get_mem(self, address):
+    #    """Get a value from memory, handling overflow"""
+    #    if address >= 65536:
+    #        address -= 65536
+    #    return self.memory[address]
     def get_mem(self, address):
         """Get a value from memory, handling overflow"""
         if address >= 65536:
-            address -= 65536
+            address %= 65536  # Wrap around for 16-bit addressing
         return self.memory[address]
     
     def set_mem(self, address, value):
@@ -518,7 +612,7 @@ class UltimaUnderworldVM:
         """Pop a value from the stack"""
         self.stack_pointer -= 1
         value = self.get_mem(self.stack_pointer)
-        self.set_mem(self.stack_pointer, 0)  # Clear the value
+        #self.set_mem(self.stack_pointer, 0)  # Clear the value
         if self.stack:
             self.stack.pop()  # For tracking/debugging
         return value
@@ -707,7 +801,7 @@ class UltimaUnderworldVM:
         value = self.pop()
         if value == 0:
             self.log(f"BEQ: Branching from {self.pc} by {offset} (value is 0)")
-            self.pc += offset
+            self.pc = self.pc + offset  # Fixed: offset is relative to instruction after branch
         else:
             self.log(f"BEQ: Not branching (value is {value})")
             self.pc += 2
@@ -718,7 +812,7 @@ class UltimaUnderworldVM:
         value = self.pop()
         if value != 0:
             self.log(f"BNE: Branching from {self.pc} by {offset} (value is {value})")
-            self.pc += offset
+            self.pc = self.pc + offset  # Fixed: offset is relative to instruction after branch
         else:
             self.log(f"BNE: Not branching (value is 0)")
             self.pc += 2
@@ -727,7 +821,7 @@ class UltimaUnderworldVM:
         """Branch always"""
         offset = self.code[self.pc + 1]
         self.log(f"BRA: Branching from {self.pc} by {offset}")
-        self.pc += offset
+        self.pc = self.pc + offset  # Fixed: offset is relative to instruction after branch
         
     def op_call(self):
         """Call subroutine"""
@@ -737,15 +831,32 @@ class UltimaUnderworldVM:
         self.pc = target
         self.call_level += 1
         
+    #def op_calli(self):
+    #    """Call imported function"""
+    #    func_id = self.code[self.pc + 1]
+    #    self.log(f"CALLI: Calling imported function {func_id}")
+    #    
+    #    if func_id in self.imported_functions:
+    #        self.imported_functions[func_id]()
+    #    else:
+    #        print(f"Warning: Unknown imported function ID {func_id}")
+    #    
+    #    self.pc += 2
     def op_calli(self):
         """Call imported function"""
         func_id = self.code[self.pc + 1]
-        self.log(f"CALLI: Calling imported function {func_id}")
+        
+        #print(f"CALLI: Calling function {func_id} with stack: {self.stack}")
         
         if func_id in self.imported_functions:
             self.imported_functions[func_id]()
         else:
-            print(f"Warning: Unknown imported function ID {func_id}")
+            print(f"WARNING: Unknown function ID {func_id}")
+        
+        #print(f"CALLI: After call, result_register = {self.result_register}")
+        
+        # Fix: Push the result register onto the stack after function call
+        self.push(self.result_register)
         
         self.pc += 2
         
@@ -885,7 +996,10 @@ class UltimaUnderworldVM:
         string_id = self.pop()
         text = self.get_string(string_id)
         self.log(f"SAY_OP: Using string ID {string_id}")
-        print(f'Gray Goblin: "{text}"')
+        if text != "[No string block loaded]":
+            print(f'NPC: "{text}"')
+        else:
+            self.log(f'NPC: "{text}"')
         self.pc += 1
         
     def op_opneg(self):
@@ -1057,7 +1171,7 @@ class UltimaUnderworldVM:
         
         import random
         self.result_register = random.randint(1, max_val)
-        print(f"RANDOM: Generated {self.result_register} (1 to {max_val})")
+        #print(f"RANDOM: Generated {self.result_register} (1 to {max_val})")
     
     def func_contains(self):
         """Check if one string contains another"""

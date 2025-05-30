@@ -14,7 +14,7 @@ from pathlib import Path
 import io
 
 class ArkCompressor:
-    """Compressor for Ultima Underworld 2 .ark files."""
+    """Compressor for Ultima Underworld 1/2 .ark files."""
     
     @staticmethod
     def compress(input_data):
