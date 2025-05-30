@@ -1,0 +1,13 @@
+let player_visited = 1
+
+// Begin conversation
+say "Hello, traveler!"
+
+if player_visited == 0
+    say "I don't believe we've met before."
+    player_visited = 1
+else
+    say "Good to see you again!"
+endif
+
+exit

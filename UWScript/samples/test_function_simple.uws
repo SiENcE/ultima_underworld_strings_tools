@@ -1,0 +1,18 @@
+// simple_function_test.uws - Test function parsing issue
+
+function test_function()
+    say "Inside function"
+    
+    let x = 5
+    if x > 0
+        say "x is positive"
+    endif
+    
+    say "Function complete"
+endfunction
+
+// Main program
+say "Starting program"
+test_function()
+say "Program complete"
+exit

@@ -1,0 +1,58 @@
+// Shopkeeper conversation
+// String Block: 1
+
+// Initialize variables
+let player_name = "Avatar"
+let gold = 100
+let has_sword = false
+
+// Begin conversation
+label start
+say "Welcome to my shop, " + player_name
+
+menu choice [
+    "Show me your wares",
+    "How much gold do I have?",
+    "Goodbye"
+]
+
+if choice == 1
+    goto show_wares
+elseif choice == 2
+    say "You have gold: " + gold
+    goto start
+else
+    say "Farewell! Come back soon!"
+    exit
+endif
+
+label show_wares
+say "I have these items for sale:"
+
+filtermenu purchase [
+    "Bronze Sword (50 gold)", gold >= 50,
+    "Silver Dagger (30 gold)", gold >= 30,
+    "Health Potion (10 gold)", gold >= 10,
+    "Back to main menu", true
+]
+
+if purchase == 1
+    gold -= 50
+    has_sword = true
+    say "A fine choice! The Bronze Sword is yours."
+elseif purchase == 2
+    gold -= 30
+    say "The Silver Dagger is yours. Use it wisely!"
+elseif purchase == 3
+    gold -= 10
+    set_quest(100, get_quest(100) + 20)  // Increase health
+    say "Drink this potion to restore your health!"
+else
+    goto start
+endif
+
+if gold <= 0
+    say "You've spent all your gold!"
+endif
+
+goto start

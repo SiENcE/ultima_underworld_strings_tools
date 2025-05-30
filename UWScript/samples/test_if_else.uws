@@ -1,0 +1,37 @@
+// Simple if-else test
+let health = 50
+
+say "Checking health status..."
+
+if health > 75
+  say "You are in excellent health (>75)!"
+endif
+
+if health > 25
+  say "You are doing okay (>25)."
+endif
+
+if health < 55
+  say "You are lower than 55 (<55)."
+endif
+
+if health == 50
+  say "You are at 50 (==50)."
+endif
+
+if health <= 25
+  say "You need healing (<=25)!"
+endif
+
+if health >= 15
+  say "You better than nothing (>=15)!"
+endif
+
+if health == 1
+  say "Your health is 1."
+else
+  say "This is ELSE."
+endif
+
+say "Health check complete."
+exit

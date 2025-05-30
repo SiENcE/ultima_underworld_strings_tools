@@ -1,0 +1,20 @@
+// Simple menu test
+let player_name = "Avatar"
+
+say "Hello, " + player_name
+
+menu choice "Who are you?", "What is this place?", "Goodbye"
+
+if choice == 1
+  say "I am a gray goblin."
+endif
+
+if choice == 2
+  say "This is my cave."
+endif
+
+if choice == 3
+  say "Farewell!"
+endif
+
+exit

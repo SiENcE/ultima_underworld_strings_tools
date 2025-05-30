@@ -1,0 +1,649 @@
+7  Conversations
+
+   Conversations in Ultima Underworld are controlled using an assembler-like
+   opcode-language that seemed to originate from Forth sourcecode. There are
+   256 conversation "slots" available that can contain code (but doesn't need
+   to). The field "npc_whoami" of the "Mobile object extra info" (see 4.2.3)
+   decides which slot to take. If it is 0, a generic NPC-conversation is used
+   instead.
+
+   To persist conversation info, there are several places to store variables.
+
+   * Quest Flags store infos needed by more than one NPC; they probably can be
+     modified by the game, e.g. when something happens (killing Tyball). Think
+     of them as global variables.
+
+   * Private Globals store infos saved after exiting conversations. Sizes of
+     this area are determined by the file "babglobals.dat".
+
+   * Local Variables store infos during conversation. They are lost when
+     conversation ends.
+
+   * NPC infos are stored along with the NPC's data in the Master Object List
+     and contain infos like npc_gtarg or npc_goal. See chapter 7.x for more.
+
+   * Game globals are variables that are global to the game, e.g. game time,
+     current dungeon level or player properties
+
+   The conversation code can call "intrinsic" functions to use functionality
+   built into the game, e.g. for bartering or player inventory access.
+
+
+7.1  Conversation file format
+
+   Conversations are stored in the file "cnv.ark". Note that in Ultima
+   Underworld 2 .ark files are compressed. See Chapter 9.1 for details.
+
+   The File header looks like this:
+
+   0000   Int16   number of conversation slots in file
+   0002   Int32   offset to conversation slot #0
+   0006   Int32   offset to conversation slot #1
+   ...
+
+   If an offset is 0, the conversation slot is empty and no conversation is
+   available. The name of the conversation partner is stored in string block
+   0007, string number = (conversation slot number - 0x0e00 + 16).
+
+   The conversation header looks like this:
+
+   0000   Int16   unknown, always seems to be 0x0828, or 28 08
+   0002   Int16   unknown, always 0x0000
+   0004   Int16   code size in number of instructions (16-bit words)
+   0006   Int16   unknown, always 0x0000
+   0008   Int16   unknown, always 0x0000
+   000A   Int16   game strings block to use for conversation strings
+   000C   Int16   number of memory slots reserved for variables (*)
+   000E   Int16   number of imported globals (functions + variables)
+   0010           start of imported functions list
+
+   (*) This number includes all variables not belonging to stack, e.g. unnamed
+   globals, imported globals and private conversation globals.
+
+   An import record describes imported functions and game global variables
+   used by the conversation:
+
+   0000   Int16   length of function name
+   0002   n*char  name of function
+   n+02   Int16   ID (imported func.) / memory address (variable)
+   n+04   Int16   unknown, always seems to be 1
+   n+06   Int16   import type (0x010F=variable, 0x0111=imported func.)
+   n+08   Int16   return type (0x0000=void, 0x0129=int, 0x012B=string)
+
+   After this table the code section follows.
+
+
+7.2  Private global variables
+
+   Each conversation has a set of private global variables that are saved
+   across conversations. The initial size of the area is stored in the file
+   "babglobals.dat". When a game is saved, the globals are stored in the file
+   "bglobals.dat". The layout of both files is as follows:
+
+   0000   Int16     number of conversation slot
+   0002   Int16     size of private global data for that conv.(=n)
+   0004   n*Int16   all globals for that slot (omitted in "babglobals.dat")
+   ...              repeat until file end
+
+   On conversation start the game globals listed in the import table is
+   copied to the memory address in the private globals. At end of conversation
+   they are copied back to the game globals.
+
+
+7.3  Memory layout
+
+   Conversation memory is set up at start like this:
+
+   0000    local (unnamed) variables (may be empty, size nglobals)
+   000n    game globals (copied on start) (usually 0x001f long)
+   0020    private conversation globals (of size nprivglobals)
+   0020+n  stack begin (ascends up)
+
+   There may be unnamed globals that start at memory location 0. The game
+   globals then start at a higher address (the exact positions of the game
+   globals are noted in the "import records list".
+
+   For the memory, a full range of 16-bit memory (64k) should be available,
+   which gives plenty of stack memory.
+
+
+7.4  Assembler language opcodes
+
+   The conversation code is an assembler-like language with a set of opcodes.
+   It runs on a 16-bit virtual machine with 3 dedicated registers:
+      BP: the base pointer for the current function. this is an index into
+          the main memory array. BP+n are local variables on the stack.
+          BP-n are parameters passed into the function.
+      SP: the current stack pointer. this is an index into the main memory
+          array of the VM. Most operations reference the stack pointer.
+      RV: result value for imported function returns. Can also be used as a
+          general purpose register.
+
+   The language set is described here:
+
+   Opcode         no. immediate operands
+   |   Name       | no. stack operands
+   |   |          | | No. values saved to stack
+   |   |          | | |  Action
+   |   |          | | |  |
+   00  NOP        0 0 0  do nothing.
+   01  OPADD      0 2 1  push s[0] + s[1]
+   02  OPMUL      0 2 1  push s[0] * s[1]
+   03  OPSUB      0 2 1  push s[1] - s[0]
+   04  OPDIV      0 2 1  push s[1] / s[0]
+   05  OPMOD      0 2 1  push s[1] % s[0]
+   06  OPOR       0 2 1  logical OR of top two values.
+   07  OPAND      0 2 1  logical AND of top two values.
+   08  OPNOT      0 1 1  logical NOT of top value.
+   09  TSTGT      0 2 1  greater-than, nonzero if s[1] > s[0].
+   0A  TSTGE      0 2 1  greater-than-or-equal.
+   0B  TSTLT      0 2 1  less-than.
+   0C  TSTLE      0 2 1  less-than-or-equal.
+   0D  TSTEQ      0 2 1  equality. Nonzero if s[1] == s[0].
+   0E  TSTNE      0 2 1  non-equal.
+   0F  JMP        1 0 0  jump absolute. address is measured in words from the
+                         start of the code.
+   10  BEQ        1 1 0  branch on equal. Pop a value, branch relative if zero.
+   11  BNE        1 1 0  branch on Not Equal. As BEQ but branch if the value
+                         popped is non-zero.
+   12  BRA        1 0 0  branch. Always branch relative to the offset address.
+   13  CALL       1 0 1  call subroutine. Push the next instruction address and
+                         jump to the absolute address (in words) given.
+   14  CALLI      1 0 0  call imported subroutine. Argument is the function ID.
+   15  RET        0 1 0  return from subroutine. Pop the return address off the
+                         stack and jump to it.
+   16  PUSHI      1 0 1  push immediate value onto the stack.
+   17  PUSHI_EFF  1 0 1  push effective address onto the stack. The value
+                         pushed is the current frame pointer address plus the
+                         immediate operand. This allows local variables and
+                         function parameters.
+   18  POP        0 1 0  pop a value from the stack (and throw it away).
+   19  SWAP       0 2 2  swap the top two stack values.
+   1A  PUSHBP     0 0 1  push the current frame pointer onto the stack.
+   1B  POPBP      0 1 0  pop the frame pointer from the stack
+   1C  SPTOBP     0 0 0  new frame. Set the frame pointer to the stack pointer.
+   1D  BPTOSP     0 0 0  exit frame. Set the stack pointer to the frame pointer.
+   1E  ADDSP      0 1 *  pop a value, add to the stack pointer. Used
+                         to reserve stack space for variables.
+   1F  FETCHM     0 1 1  pop address, push the value of the variable pointed to.
+   20  STO        0 2 0  store s[0] in the variable pointed to by s[1].
+   21  OFFSET     0 2 1  array offset. Add s[1] - 1 to the effective address in
+                         s[0], push this as a new effective address.
+   22  START      0 0 0  start program.
+   23  SAVE_REG   0 1 0  pop a value from the stack and store it in the result
+                         register.
+   24  PUSH_REG   0 0 1  push the value of the result register on the stack.
+   25  STRCMP     ? ? ?  string compare.
+   26  EXIT_OP    0 0 0  end program (?)
+   27  SAY_OP     0 1 0  NPC says something. Print a conversation string (from
+                         the stack).
+   28  RESPOND_OP ? ? ?  respond (?)
+   29  OPNEG      0 1 1  negate. s[0] -> -s[0].
+
+   (*) ADDSP, of course, doesn't actually push anything onto the stack, but its
+       effect on the stack pointer is of pushing as many values as its operand
+       specifies.
+   (?) I haven't yet encountered these in the wild, so don't know exactly what
+       they do.
+
+
+7.5  Text substitutions
+
+   In text strings printed by SAY_OP or a imported function (like
+   "babl_menu") there may be strings like @SS1 or @GS8 that are substituted
+   with other text. The format of the "format string" is like this:
+
+   @XY<num>[<extension>]
+
+   X: source of variable to substitute, one of these: GSP
+      G: game global variable
+      S: stack variable
+      P: pointer variable
+   Y: type of variable, one of these: SI
+      S: value is a string number into current string block
+      I: value is an integer value
+   <num>: decimal value
+   <extension>: format: C<number>: use array index <number>
+
+   For pointer variables, the num value determines the location of the
+   pointer relative to the stack. It usually refers to variables passed
+   to a function (since they were pushed onto the stack).
+
+   For stack variables, the num value determines which stack value is taken
+   from the current local variables. The value to take is basep + <num>
+
+   For global variables, the value describes the globals position in memory,
+   at the front where the imported game globals and private globals are
+   stored.
+
+   Example:
+   @SS2 means: print string with string number found at basep + 2
+   @PI-3 means: print int value pointed to by pointer at basep - 3
+   @GS8 means: print string from global var #8
+
+
+7.6  Intrinsic functions
+
+   Each imported function has an ID (the argument of the CALLI opcode), and
+   the "import table" (see above) usually imports all available functions,
+   even unused ones. All imported functions have at least one argument, and
+   the first one is the number of arguments additionally passed (some times
+   this rule seems to be violated, e.g. function "babl_menu", see (*)
+   below). First argument is always pushed last on stack. All values are
+   passed by reference (as pointer to the actual value or array).
+
+
+7.6.1 Ultima Underworld 1 intrinsic functions
+
+   Here is a quick overview of all builtin functions ("args" is the number
+   of arguments without the mandatory first one):
+
+    type    args     function name
+    int      1 (*)   babl_menu
+    int      2 (*)   babl_fmenu
+    void     1       print
+    int      0       babl_ask
+    int      2       compare
+    int      1       random
+    string   ?       plural
+    int      2       contains
+    string   ?       append
+    string   ?       copy
+    int      ?       find
+    int      1       length
+    int      ?       val
+    void     ?       say
+    void     ?       respond
+    int      1       get_quest
+    void     2       set_quest
+    string   2       sex
+    int      2       show_inv
+    int      2       give_to_npc
+    int      2       give_ptr_npc
+    int      1       take_from_npc
+    int      1       take_id_from_npc
+    int      4       identify_inv
+    int      *       do_offer
+    int      2       do_demand
+    int      1       do_inv_create
+    int      1       do_inv_delete
+    int      1       check_inv_quality
+    int      2       set_inv_quality
+    int      1       count_inv
+    void     0       setup_to_barter
+    void     ?       end_barter
+    void     0       do_judgement
+    void     0       do_decline
+    void     ?       pause
+    void     2       set_likes_dislikes
+    int      3       gronk_door
+    void     1/3     set_race_attitude
+    void     3       place_object
+    void     1       take_from_npc_inv
+    void     ?       add_to_npc_inv
+    void     0       remove_talker
+    void     2       set_attitude
+    int      2       x_skills
+    int      2       x_traps
+    void     ?       x_obj_pos
+    void     9       x_obj_stuff
+    int      2       find_inv
+    int      1       find_barter
+    int      4       find_barter_total
+
+   Here is a detailed description of every builtin function. arg0 is always
+   the first argument (the last value pushed on the stack) and specifies the
+   number of arguments passed.
+
+   id=0000 name="babl_menu" ret_type=int
+   parameters:   arg1: array of string id's; ends with id = 0
+   description:  shows a menu of further questions the user can select;
+                 string id's are stored in list in arg1
+   return value: number of selected response (one-based index of arg1 list)
+   -------------------------------------------------------------------------
+
+   id=0001 name="babl_fmenu" ret_type=int
+   parameters:   arg1: array of string id's; ends with id = 0
+                 arg2: array with on/off flag values (1==on)
+   description:  shows a menu with questions from list in arg1; the list in
+                 arg2 indicates if the question is available (0 means not
+                 available).
+   return value: number of selected response string (from the arg1 list)
+   -------------------------------------------------------------------------
+
+   id=0002 name="print" ret_type=void
+   parameters:   arg1: string id
+   description:  prints a string that is not spoken by anyone (e.g. scene
+                 description).
+   -------------------------------------------------------------------------
+
+   id=0003 name="babl_ask" ret_type=int
+   parameters:   none
+   description:  lets the user type in a string; the string typed in is
+                 stored in a newly allocated string slot. The string is not
+                 stored after conversation ended.
+   return value: string id of allocated string
+   -------------------------------------------------------------------------
+
+   id=0004 name="compare" ret_type=int
+   parameters:   arg1: string id
+                 arg2: string id
+   description:  compares strings for equality, case independent
+   return value: returns 1 when strings are equal, 0 when not
+   -------------------------------------------------------------------------
+
+   id=0005 name="random" ret_type=int
+   parameters:   arg1: highest random value
+   description:  generates a random number in the range of [1..arg1]
+   return value: the generated random number
+   -------------------------------------------------------------------------
+
+   id=0006 name="plural" ret_type=string
+   parameters:   unknown
+   description:  (not used in uw1)
+   return value: unknown
+   -------------------------------------------------------------------------
+
+   id=0007 name="contains" ret_type=int
+   parameters:   arg1: pointer to first string id
+                 arg2: pointer to second string id
+   description:  checks if the first string contains the second string,
+                 case-independent.
+   return value: returns 1 when the string was found, 0 when not
+   -------------------------------------------------------------------------
+
+   id=0008 name="append" ret_type=string
+   parameters:   unknown
+   description:  (not used in uw1)
+   return value: unknown
+   -------------------------------------------------------------------------
+
+   id=0009 name="copy" ret_type=string
+   parameters:   unknown
+   description:  (not used in uw1)
+   return value: unknown
+   -------------------------------------------------------------------------
+
+   id=000a name="find" ret_type=int
+   parameters:   unknown
+   description:  (not used in uw1)
+   return value: unknown
+   -------------------------------------------------------------------------
+
+   id=000b name="length" ret_type=int
+   parameters:   arg1: string id
+   description:  calculates length of string
+   return value: length of string
+   -------------------------------------------------------------------------
+
+   id=000c name="val" ret_type=int
+   parameters:   unknown
+   description:  (not used in uw1)
+   return value: unknown
+   -------------------------------------------------------------------------
+
+   id=000d name="say" ret_type=void
+   parameters:   unknown
+   description:  (not used in uw1)
+   return value: unknown
+   -------------------------------------------------------------------------
+
+   id=000e name="respond" ret_type=void
+   parameters:   unknown
+   description:  (not used in uw1)
+   return value: unknown
+   -------------------------------------------------------------------------
+
+   id=000f name="get_quest" ret_type=int
+   parameters:   arg1: quest flag number
+   description:  returns a quest flag value
+   return value: quest flag value
+   -------------------------------------------------------------------------
+
+   id=0010 name="set_quest" ret_type=void
+   parameters:   arg1: new flag value
+                 arg2: quest flag number
+   description:  sets a quest flag value
+   return value: none
+   -------------------------------------------------------------------------
+
+   id=0011 name="sex" ret_type=string
+   parameters:   arg1: pointer to first string id
+                 arg2: pointer to second string id
+   description:  decides on the gender of the avatar which string id to
+                 return. for a male avatar, the second handle is taken,
+                 otherwise the first handle is taken
+   return value: selected string id
+   -------------------------------------------------------------------------
+
+   id=0012 name="show_inv" ret_type=int
+   parameters:   arg1: list with inventory item positions
+                 arg2: list with object id's shown in player's barter area
+   description:  the function copies the item positions and object id's of
+                 all visible items in the barter area to the array in arg1
+                 and arg2 (which needs at most 4 array values each)
+   return value: returns number of items stored in the arrays
+   -------------------------------------------------------------------------
+
+   id=0013 name="give_to_npc" ret_type=int
+   parameters:   arg1: list of item inventory positions to give to npc
+                 arg2: number of items in list in arg1
+   description:  transfers a number of items from the player inventory to
+                 the npc's inventory
+   return value: returns 0 if there were no items to give, and 1 if there
+                 were some items
+   -------------------------------------------------------------------------
+
+   id=0014 name="give_ptr_npc" ret_type=int
+   parameters:   arg1: quantity (?), or -1 for ignore
+                 arg2: inventory object list pos
+   description:  copies item from player inventory to npc inventory
+   return value: none
+   -------------------------------------------------------------------------
+
+   id=0015 name="take_from_npc" ret_type=int
+   parameters:   arg1: item id (can also be an item category value, > 1000)
+   description:  transfers an item from npc inventory to player inventory,
+                 based on an item id. when the value is > 1000, all items of
+                 a category are copied. category item start = (arg1-1000)*16
+   return value: 1: ok, 2: player has no space left
+   -------------------------------------------------------------------------
+
+   id=0016 name="take_id_from_npc" ret_type=int
+   parameters:   arg1: inventory object list pos (from take_from_npc_inv)
+   description:  transfers item to player, per id (?)
+   return value: 1: ok, 2: player has no space left
+   -------------------------------------------------------------------------
+
+   id=0017 name="identify_inv" ret_type=int
+   parameters:   arg1:
+                 arg2:
+                 arg3:
+                 arg4: inventory item position
+   description:  unknown TODO
+   return value: unknown
+   -------------------------------------------------------------------------
+
+   id=0018 name="do_offer" ret_type=int
+   parameters:   arg1 ... arg5: unknown
+                 [arg6, arg7]: unknown
+   description:  checks if the deal is acceptable for the npc, based on the
+                 selected items in both bartering areas. the values in arg1
+                 to arg5 are probably values of the items that are
+                 acceptable for the npc.
+                 the function is sometimes called with 7 args, but arg6 and
+                 arg7 are always set to -1.
+   return value: 1 if the deal is acceptable, 0 if not
+   -------------------------------------------------------------------------
+
+   id=0019 name="do_demand" ret_type=int
+   parameters:   arg1: string id with text to print if NPC is not willing
+                       to give the item
+                 arg2: string id with text if NPC gives the player the item
+   description:  decides if the player can "persuade" the NPC to give away
+                 the items in barter area, e.g. using karma.
+   return value: returns 1 when player persuaded the NPC, 0 else
+   -------------------------------------------------------------------------
+
+   id=001a name="do_inv_create" ret_type=int
+   parameters:   arg1: item id
+   description:  creates item in npc inventory
+   return value: inventory object list position
+   -------------------------------------------------------------------------
+
+   id=001b name="do_inv_delete" ret_type=int
+   parameters:   arg1: item id
+   description:  deletes item from npc inventory
+   return value: none
+   -------------------------------------------------------------------------
+
+   id=001c name="check_inv_quality" ret_type=int
+   parameters:   arg1: inventory item position
+   description:  returns "quality" field of npc? inventory item
+   return value: "quality" field
+   -------------------------------------------------------------------------
+
+   id=001d name="set_inv_quality" ret_type=int
+   parameters:   arg1: quality value
+                 arg2: inventory object list position
+   description:  sets quality for an item in inventory
+   return value: none
+   -------------------------------------------------------------------------
+
+   id=001e name="count_inv" ret_type=int
+   parameters:   unknown
+   description:  counts number of items in inventory
+   return value: item number
+   -------------------------------------------------------------------------
+
+   id=001f name="setup_to_barter" ret_type=void
+   parameters:   none
+   description:  starts bartering; shows npc items in npc bartering area
+   -------------------------------------------------------------------------
+
+   id=0020 name="end_barter" ret_type=void
+   parameters:   unknown
+   description:  (not used in uw1), ends bartering, probably removing npc
+                 bartering items
+   -------------------------------------------------------------------------
+
+   id=0021 name="do_judgement" ret_type=void
+   parameters:   none
+   description:  judges current trade (using the "appraise" skill) and
+                 prints result
+   -------------------------------------------------------------------------
+
+   id=0022 name="do_decline" ret_type=void
+   parameters:   none
+   description:  declines trade offer (?)
+   -------------------------------------------------------------------------
+
+   id=0023 name="pause" ret_type=void
+   parameters:   unknown
+   description:  (not used in uw1)
+   -------------------------------------------------------------------------
+
+   id=0024 name="set_likes_dislikes" ret_type=void
+   parameters:   arg1: pointer to list of things the npc likes to trade
+                 arg2: pointer to list of things the npc dislikes to trade
+   description:  sets list of items that a npc likes or dislikes to trade;
+                 the list is terminated with a -1 (0xffff) entry
+   -------------------------------------------------------------------------
+
+   id=0025 name="gronk_door" ret_type=int
+   parameters:   arg1: x tile coordinate with door to open
+                 arg2: y tile coordinate
+                 arg3: close/open flag (0 means open)
+   description:  opens/closes door or portcullis
+   return value: unknown
+   -------------------------------------------------------------------------
+
+   id=0026 name="set_race_attitude" ret_type=void
+   parameters:   unknown
+   description:  sets attitude for a whole race (?)
+   -------------------------------------------------------------------------
+
+   id=0027 name="place_object" ret_type=void
+   parameters:   arg1: x tile pos
+                 arg2: y tile pos
+                 arg3: inventory item slot number (from do_inv_create)
+   description:  places a generated object in underworld
+                 used in Judy's conversation, #23
+   -------------------------------------------------------------------------
+
+   id=0028 name="take_from_npc_inv" ret_type=void
+   parameters:   arg1: unknown, always 1 in uw1
+   description:  moves object from npc to player inventory, by npc inventory
+                 index (only used in conv. #16, Ishtass)
+   return value: inventory object list position (used in take_id_from_npc)
+   -------------------------------------------------------------------------
+
+   id=0029 name="add_to_npc_inv" ret_type=void
+   parameters:   unknown
+   description:  (not used in uw1)
+   -------------------------------------------------------------------------
+
+   id=002a name="remove_talker" ret_type=void
+   parameters:   none
+   description:  removes npc the player is talking to (?)
+   -------------------------------------------------------------------------
+
+   id=002b name="set_attitude" ret_type=void
+   parameters:   unknown
+   description:  unknown
+   -------------------------------------------------------------------------
+
+   id=002c name="x_skills" ret_type=int
+   parameters:   unknown
+   description:  unknown
+   return value: unknown
+   -------------------------------------------------------------------------
+
+   id=002d name="x_traps" ret_type=int
+   parameters:   unknown
+   description:  unknown
+   return value: unknown
+   -------------------------------------------------------------------------
+
+   id=002e name="x_obj_pos" ret_type=void
+   parameters:   unknown
+   description:  (not used in uw1)
+   -------------------------------------------------------------------------
+
+   id=002f name="x_obj_stuff" ret_type=void
+   parameters:   arg1: not used in uw1
+                 arg2: not used in uw1
+                 arg3: 0, (upper bit of quality field?)
+                 arg4: quantity/special field, 115
+                 arg5: not used in uw1
+                 arg6: not used in uw1
+                 arg7: quality?
+                 arg8: identified flag?
+                 arg9: position in inventory object list
+   description:  sets object properties for object in inventory object list.
+                 if a property shouldn't be set, -1 is passed for the
+                 property value.
+   -------------------------------------------------------------------------
+
+   id=0030 name="find_inv" ret_type=int
+   parameters:   arg1: 0: npc inventory; 1: player inventory
+                 arg2: item id
+   description:  searches item in npc or player inventory
+   return value: position in master object list, or 0 if not found
+   -------------------------------------------------------------------------
+
+   id=0031 name="find_barter" ret_type=int
+   parameters:   arg1: item id to find
+   description:  searches for item in barter area
+   return value: returns pos in inventory object list, or 0 if not found
+   -------------------------------------------------------------------------
+
+   id=0032 name="find_barter_total" ret_type=int
+   parameters:   s[0]: ???
+                 s[1]: pointer to number of found items
+                 s[2]: pointer to
+                 s[3]: pointer to
+                 s[4]: pointer to item ID to find
+   description:  searches for item in barter area
+   return value: 1 when found (?)
+   -------------------------------------------------------------------------

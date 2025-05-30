@@ -1,0 +1,59 @@
+// graphics_test.uws - Simplified version
+// Tests all graphics functions with a colorful display
+
+// Initialize variables
+let running = true
+
+// Define key codes
+let KEY_ESC = 6
+
+// Test sprite 1: Simple 4x4 face
+let face = [
+	4, 4,
+	0, 1, 1, 0,  // Row 0: white eyes
+	1, 2, 2, 1,  // Row 1: red eyes
+	1, 1, 1, 1,  // Row 2: white face
+	0, 2, 2, 0   // Row 3: red mouth
+]
+
+// Test sprite 2: 8x8 checkerboard
+let checker = [
+	8, 8,
+	3, 0, 3, 0, 3, 0, 3, 0,
+	0, 3, 0, 3, 0, 3, 0, 3,
+	3, 0, 3, 0, 3, 0, 3, 0,
+	0, 3, 0, 3, 0, 3, 0, 3,
+	3, 0, 3, 0, 3, 0, 3, 0,
+	0, 3, 0, 3, 0, 3, 0, 3,
+	3, 0, 3, 0, 3, 0, 3, 0,
+	0, 3, 0, 3, 0, 3, 0, 3
+]
+
+// Draw a colorful test pattern
+label main_loop
+    // Clear screen to black
+    clear_screen(0)
+    
+	// Draw test sprites
+	//draw_sprite(10, 10, face)
+	draw_sprite(50, 50, checker)
+	//draw_sprite(100, 10, face)
+	
+	// Test edge clipping
+	//draw_sprite(124, 124, face)
+    
+    // Check for exit key
+    if is_key_pressed(KEY_ESC)
+        running = false
+    endif
+    
+    // Update display
+    flip_display()
+    
+    // Continue loop if running
+    if running
+        goto main_loop
+    endif
+
+say "Graphics test complete!"
+exit

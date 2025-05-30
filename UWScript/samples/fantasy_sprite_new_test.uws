@@ -1,0 +1,85 @@
+// Test program to demonstrate the temporary variable fix
+// This program creates a sprite that moves around the screen
+
+// Define key constants
+let KEY_LEFT = 2
+let KEY_RIGHT = 3
+let KEY_UP = 0
+let KEY_DOWN = 1
+let KEY_ESCAPE = 6
+
+// Create a simple sprite (8x8 smiley face)
+let sprite = [
+    8, 8,                           // Width, Height
+    0, 0, 1, 1, 1, 1, 0, 0,        // Row 1
+    0, 1, 1, 1, 1, 1, 1, 0,        // Row 2
+    1, 1, 2, 1, 1, 2, 1, 1,        // Row 3 (red eyes)
+    1, 1, 1, 1, 1, 1, 1, 1,        // Row 4
+    1, 1, 3, 1, 1, 3, 1, 1,        // Row 5 (green smile)
+    1, 1, 1, 3, 3, 1, 1, 1,        // Row 6
+    0, 1, 1, 1, 1, 1, 1, 0,        // Row 7
+    0, 0, 1, 1, 1, 1, 0, 0         // Row 8
+]
+
+// Starting position
+let x = 60
+let y = 60
+let running = true
+
+say "Starting sprite movement test..."
+say "Use arrow keys to move the sprite, ESC to exit"
+
+// Main game loop
+label game_loop
+    // Clear screen with black background
+    clear_screen(0)
+    
+    // Draw the sprite at current position
+    // This is where the temp variable bug would manifest:
+    // If temp variables get reused incorrectly, the sprite
+    // would be drawn at wrong coordinates or with wrong data
+    draw_sprite(x, y, sprite)
+    
+    // Handle input
+    if is_key_pressed(KEY_LEFT)
+        x -= 2
+    endif
+    if is_key_pressed(KEY_RIGHT)  
+        x += 2
+    endif
+    if is_key_pressed(KEY_UP)
+        y -= 2
+    endif
+    if is_key_pressed(KEY_DOWN)
+        y += 2
+    endif
+    
+    // Keep sprite on screen
+    if x < 0
+        x = 0
+    endif
+    if x > 120
+        x = 120
+    endif
+    if y < 0
+        y = 0
+    endif
+    if y > 120
+        y = 120
+    endif
+    
+    // Check for exit
+    if is_key_pressed(KEY_ESCAPE)
+        running = false
+    endif
+    
+    // Update display
+    flip_display()
+    
+    // Continue loop if still running
+    if running
+        goto game_loop
+    endif
+
+say "Thanks for testing!"
+exit

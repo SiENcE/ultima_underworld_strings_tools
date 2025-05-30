@@ -1,0 +1,44 @@
+// Simple while loop test without string concatenation
+let counter = 3
+
+say "Starting simple countdown"
+
+while counter > 0
+    say "Tick"
+    counter -= 1
+endwhile
+
+say "Done with countdown"
+
+// Test nested while loops without concatenation  
+let outer = 2
+
+say "Testing nested loops"
+
+while outer > 0
+    say "Outer iteration"
+    let inner = 2
+    
+    while inner > 0
+        say "Inner iteration"  
+        inner -= 1
+    endwhile
+    
+    outer -= 1
+endwhile
+
+say "Nested loops complete"
+
+// Test while with simple condition
+let health = 100
+
+say "Health simulation"
+
+while health > 50
+    say "Still healthy"
+    health -= 25
+endwhile
+
+say "Health low"
+
+exit

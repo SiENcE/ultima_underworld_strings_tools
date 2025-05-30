@@ -1,0 +1,36 @@
+// test_sprite_simple.uws - Simple test to verify variable corruption fix
+
+// Define a simple 2x2 sprite
+let test_sprite = [2, 2, 1, 2, 3, 4]
+
+// Test variables
+let x = 50
+let y = 60
+
+say "Testing sprite rendering..."
+
+// First draw
+draw_sprite(x, y, test_sprite)
+flip_display()
+
+// Check if variables are still correct after first call
+// They should still be 50 and 60
+say "After first draw: x should be 50, y should be 60"
+
+// Second draw - this is where corruption usually happens
+draw_sprite(x, y, test_sprite)
+flip_display()
+
+say "After second draw: x should still be 50, y should still be 60"
+
+// Try modifying the variables
+x = 70
+y = 80
+
+// Third draw with new values
+draw_sprite(x, y, test_sprite)
+flip_display()
+
+say "After modification: x should be 70, y should be 80"
+say "Test complete!"
+exit

@@ -1,0 +1,76 @@
+// Simple Pong-like game
+let KEY_UP = 0
+let KEY_DOWN = 1
+let KEY_ESCAPE = 6
+
+let paddle_y = 60
+let ball_x = 64
+let ball_y = 32
+let ball_dx = 1
+let ball_dy = 1
+let score = 0
+let running = true
+
+say "Use UP/DOWN arrows to move paddle. ESC to quit."
+
+label game_loop
+    // Clear screen
+    clear_screen(0)
+    
+    // Handle input
+    if is_key_pressed(KEY_UP) and paddle_y > 0
+        paddle_y -= 2
+    endif
+    
+    if is_key_pressed(KEY_DOWN) and paddle_y < 108
+        paddle_y += 2
+    endif
+    
+    if is_key_pressed(KEY_ESCAPE)
+        running = false
+    endif
+    
+    // Update ball
+    ball_x += ball_dx
+    ball_y += ball_dy
+    
+    // Ball collision with top/bottom
+    if ball_y <= 0 or ball_y >= 127
+        ball_dy = -ball_dy
+    endif
+    
+    // Ball collision with left edge (paddle)
+    if ball_x <= 5
+        if ball_y >= paddle_y and ball_y <= paddle_y + 20
+            ball_dx = -ball_dx
+            score += 1
+        else
+            // Game over
+            say "Game Over! Score: " + score
+            exit
+        endif
+    endif
+    
+    // Ball collision with right edge
+    if ball_x >= 127
+        ball_dx = -ball_dx
+    endif
+    
+    // Draw paddle
+    fill_rect(2, paddle_y, 3, 20, 1)
+    
+    // Draw ball
+    fill_rect(ball_x, ball_y, 2, 2, 2)
+    
+    // Draw score
+    print(50, 5, "Score: " + score, 15)
+    
+    // Update display
+    flip_display()
+    
+    if running
+        goto game_loop
+    endif
+
+say "Thanks for playing!"
+exit

@@ -1,0 +1,45 @@
+// Test arithmetic operations
+let a = 10
+let b = 3
+
+say "Testing subtraction:"
+say "10 - 3 should be 7"
+let result1 = a - b
+// result1 should be 7
+say "= " + result1
+say "-----"
+
+say "Testing compound subtraction:"  
+say "10 -= 3 should be 7"
+a -= b  
+// a should now be 7
+say "= " + a
+say "-----"
+
+say "Testing division:"
+let c = 15
+let d = 3
+say "15 / 3 should be 5"
+let result2 = c / d
+// result2 should be 5
+say "= " + result2
+say "-----"
+
+say "Testing compound division:"
+say "15 /= 3 should be 5" 
+c /= d
+// c should now be 5
+say "= " + c
+say "-----"
+
+say "Testing while loop:"
+let counter = 3
+while counter > 0
+    say "Counter is positive"
+    counter -= 1
+endwhile
+say "= " + counter
+say "-----"
+
+say "All tests complete"
+exit

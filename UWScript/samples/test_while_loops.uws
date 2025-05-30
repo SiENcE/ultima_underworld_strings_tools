@@ -1,0 +1,62 @@
+// While loop test cases
+let countdown = 5
+
+say "Starting countdown..."
+
+while countdown > 0
+    say "T-minus " + countdown
+    countdown -= 1
+endwhile
+
+say "Blast off!"
+
+// Test with different condition types
+let health = 100
+let damage = 15
+
+say "Simulating combat..."
+
+while health > 20
+    say "Taking damage! Health: " + health
+    health -= damage
+endwhile
+
+say "Health critical: " + health
+
+// Test nested while loops
+let x = 2
+let total_iterations = 0
+
+say "Testing nested loops..."
+
+while x > 0
+    say "Outer loop x = " + x
+    let y = 3
+    
+    while y > 0
+        say "  Inner loop y = " + y
+        total_iterations += 1
+        y -= 1
+    endwhile
+    
+    x -= 1
+endwhile
+
+say "Total iterations: " + total_iterations
+
+// Test while with complex condition
+let counter = 0
+let flag = true
+
+while counter < 3 and flag == true
+    say "Complex condition loop: " + counter
+    counter += 1
+    
+    if counter == 2
+        flag = false
+    endif
+endwhile
+
+say "Complex loop finished at counter: " + counter
+
+exit

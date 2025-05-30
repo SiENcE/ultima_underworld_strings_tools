@@ -1,0 +1,136 @@
+// input_test.uws - Simplified version
+// Tests keyboard input with visual feedback
+
+// Define key codes
+let KEY_UP = 0
+let KEY_DOWN = 1
+let KEY_LEFT = 2
+let KEY_RIGHT = 3
+let KEY_SPACE = 4
+let KEY_RETURN = 5
+let KEY_ESC = 6
+
+// Initialize positions individually instead of using an array
+let pos_up = 64
+let pos_down = 64
+let pos_left = 64
+let pos_right = 64
+let pos_space = 64
+let pos_return = 64
+let pos_esc = 64
+let running = true
+
+// Main loop
+label main_loop
+    // Clear screen
+    clear_screen(0)
+    
+    // Check UP key
+    if is_key_pressed(KEY_UP)
+        pos_up = pos_up - 1
+        if pos_up < 10
+            pos_up = 10
+        endif
+    else
+        pos_up = pos_up + 1
+        if pos_up > 118
+            pos_up = 118
+        endif
+    endif
+    fill_rect(5, pos_up - 5, 10, 10, 3)
+    
+    // Check DOWN key
+    if is_key_pressed(KEY_DOWN)
+        pos_down = pos_down - 1
+        if pos_down < 10
+            pos_down = 10
+        endif
+    else
+        pos_down = pos_down + 1
+        if pos_down > 118
+            pos_down = 118
+        endif
+    endif
+    fill_rect(23, pos_down - 5, 10, 10, 4)
+    
+    // Check LEFT key
+    if is_key_pressed(KEY_LEFT)
+        pos_left = pos_left - 1
+        if pos_left < 10
+            pos_left = 10
+        endif
+    else
+        pos_left = pos_left + 1
+        if pos_left > 118
+            pos_left = 118
+        endif
+    endif
+    fill_rect(41, pos_left - 5, 10, 10, 5)
+    
+    // Check RIGHT key
+    if is_key_pressed(KEY_RIGHT)
+        pos_right = pos_right - 1
+        if pos_right < 10
+            pos_right = 10
+        endif
+    else
+        pos_right = pos_right + 1
+        if pos_right > 118
+            pos_right = 118
+        endif
+    endif
+    fill_rect(59, pos_right - 5, 10, 10, 6)
+    
+    // Check SPACE key
+    if is_key_pressed(KEY_SPACE)
+        pos_space = pos_space - 1
+        if pos_space < 10
+            pos_space = 10
+        endif
+    else
+        pos_space = pos_space + 1
+        if pos_space > 118
+            pos_space = 118
+        endif
+    endif
+    fill_rect(77, pos_space - 5, 10, 10, 7)
+    
+    // Check RETURN key
+    if is_key_pressed(KEY_RETURN)
+        pos_return = pos_return - 1
+        if pos_return < 10
+            pos_return = 10
+        endif
+    else
+        pos_return = pos_return + 1
+        if pos_return > 118
+            pos_return = 118
+        endif
+    endif
+    fill_rect(95, pos_return - 5, 10, 10, 8)
+    
+    // Check ESC key
+    if is_key_pressed(KEY_ESC)
+        pos_esc = pos_esc - 1
+        if pos_esc < 10
+            pos_esc = 10
+        endif
+        running = false
+    else
+        pos_esc = pos_esc + 1
+        if pos_esc > 118
+            pos_esc = 118
+        endif
+    endif
+    fill_rect(113, pos_esc - 5, 10, 10, 9)
+    
+    // Update display
+    flip_display()
+    
+    // Continue loop if running
+    if running
+        goto main_loop
+    endif
+
+	say "Input test complete!"
+exit

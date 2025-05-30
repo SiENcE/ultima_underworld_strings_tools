@@ -1,0 +1,49 @@
+// This would now compile correctly:
+let KEY_ESCAPE = 6
+let KEY_SPACE = 4
+let running = true
+let current_effect = 0
+
+function run_circle_test()
+    draw_line(10, 10, 118, 10, 15)
+    draw_line(10, 12, 118, 12, 15)
+    
+    let i = 0
+    while i < 5
+        let x = random(100) + 14
+        let y = random(80) + 20
+        let radius = random(20) + 5
+        let color = 2
+        draw_circle(x, y, radius, color)
+        i = i + 1
+    endwhile
+endfunction
+
+// Main program
+label game_loop
+	// Clear screen (black)
+	clear_screen(0)
+	
+	// Exit with ESCAPE
+	if is_key_pressed(KEY_ESCAPE)
+		running = false
+	endif
+	
+	// Check SPACE key
+	if is_key_pressed(KEY_SPACE)
+		current_effect = (current_effect + 1) % 6
+	endif
+	
+	say "current_effect: " + current_effect
+
+	run_circle_test()  // This would now work!
+
+	// Update display
+	flip_display()
+
+	// Continue if running
+	if running
+		goto game_loop
+	endif
+	
+	exit

@@ -1,0 +1,139 @@
+// sprite_demo.uws - Sprite Demo Program for FantasyUW Console
+
+// Constants for key codes
+let KEY_UP = 0
+let KEY_DOWN = 1
+let KEY_LEFT = 2
+let KEY_RIGHT = 3
+let KEY_SPACE = 4
+let KEY_RETURN = 5
+let KEY_ESCAPE = 6
+
+// Define a simple 8x8 smiley face sprite
+// Format: [width, height, pixel_data...]
+let smiley_sprite = [
+    8, 8,                    // 8x8 sprite
+    0, 0, 5, 5, 5, 5, 0, 0,  // Row 0: yellow outline
+    0, 5, 5, 5, 5, 5, 5, 0,  // Row 1
+    5, 5, 2, 5, 5, 2, 5, 5,  // Row 2: red eyes
+    5, 5, 5, 5, 5, 5, 5, 5,  // Row 3
+    5, 2, 5, 5, 5, 5, 2, 5,  // Row 4: red mouth
+    5, 5, 2, 2, 2, 2, 5, 5,  // Row 5
+    0, 5, 5, 5, 5, 5, 5, 0,  // Row 6
+    0, 0, 5, 5, 5, 5, 0, 0   // Row 7
+]
+
+// Define a simple 4x4 heart sprite
+let heart_sprite = [
+    4, 4,                    // 4x4 sprite
+    0, 2, 0, 2,              // Row 0: red heart
+    2, 2, 2, 2,              // Row 1
+    2, 2, 2, 2,              // Row 2
+    0, 2, 0, 0               // Row 3
+]
+
+// Define player character sprite (8x8)
+let player_sprite = [
+    8, 8,                    // 8x8 sprite
+    0, 0, 0, 3, 3, 0, 0, 0,  // Row 0: green hat
+    0, 0, 3, 1, 1, 3, 0, 0,  // Row 1: face
+    0, 3, 1, 1, 1, 1, 3, 0,  // Row 2
+    0, 3, 1, 2, 1, 2, 3, 0,  // Row 3: red eyes
+    0, 3, 1, 1, 1, 1, 3, 0,  // Row 4
+    0, 3, 1, 2, 2, 1, 3, 0,  // Row 5: red smile
+    0, 0, 3, 1, 1, 3, 0, 0,  // Row 6
+    0, 0, 0, 3, 3, 0, 0, 0   // Row 7
+]
+
+// Initialize variables
+let player_x = 60
+let player_y = 60
+let running = true
+let frame_count = 0
+
+// Say welcome message
+say "Welcome to the Sprite Demo!"
+say "Use arrow keys to move the player sprite."
+say "Press SPACE to show animated sprites."
+say "Press ESCAPE to exit."
+
+// Main game loop
+label game_loop
+    // Clear screen (black)
+    clear_screen(0)
+    
+    // Handle input - move player
+    if is_key_pressed(KEY_UP)
+        player_y -= 1
+        if player_y < 0
+            player_y = 0
+        endif
+    endif
+    
+    if is_key_pressed(KEY_DOWN)
+        player_y += 1
+        if player_y > 120
+            player_y = 120
+        endif
+    endif
+    
+    if is_key_pressed(KEY_LEFT)
+        player_x -= 1
+        if player_x < 0
+            player_x = 0
+        endif
+    endif
+    
+    if is_key_pressed(KEY_RIGHT)
+        player_x += 1
+        if player_x > 120
+            player_x = 120
+        endif
+    endif
+    
+    // Exit with ESCAPE
+    if is_key_pressed(KEY_ESCAPE)
+        running = false
+    endif
+    
+    // Draw player sprite
+    draw_sprite(player_x, player_y, player_sprite)
+    
+    // Draw some decorative sprites
+    draw_sprite(10, 10, smiley_sprite)
+    draw_sprite(110, 10, smiley_sprite)
+    draw_sprite(10, 110, smiley_sprite)
+    draw_sprite(110, 110, smiley_sprite)
+    
+    // Animated hearts when SPACE is pressed
+    if is_key_pressed(KEY_SPACE)
+        let heart_x = 40 + frame_count % 20
+        let heart_y = 20 + frame_count % 30
+        draw_sprite(heart_x, heart_y, heart_sprite)
+        
+        let heart2_x = 80 - frame_count % 15
+        let heart2_y = 50 + frame_count % 25
+        draw_sprite(heart2_x, heart2_y, heart_sprite)
+    endif
+    
+    // Draw frame counter
+    draw_rect(2, 2, 30, 8, 1)
+    fill_rect(3, 3, 28, 6, 0)
+    
+    // Increment frame counter
+    frame_count += 1
+    if frame_count > 1000
+        frame_count = 0
+    endif
+    
+    // Update display
+    flip_display()
+    
+    // Continue if running
+    if running
+        goto game_loop
+    endif
+
+// Game over
+say "Thanks for playing the Sprite Demo!"
+exit

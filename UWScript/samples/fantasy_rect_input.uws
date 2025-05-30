@@ -1,0 +1,63 @@
+// demo.uws - FantasyUW Demo Program
+
+// Constants for key codes
+let KEY_UP = 0
+let KEY_DOWN = 1
+let KEY_LEFT = 2
+let KEY_RIGHT = 3
+let KEY_SPACE = 4
+let KEY_RETURN = 5
+let KEY_ESCAPE = 6
+
+// Initialize variables
+let x = 64
+let y = 64
+let color = 2  // White
+let running = true
+
+// Main game loop
+label game_loop
+    // Clear screen (black)
+    clear_screen(0)
+    
+    // Draw rectangle around player position
+    draw_rect(x - 10, y - 10, 20, 20, color)
+    
+    // Handle input
+    if is_key_pressed(KEY_UP)
+        y -= 1
+    endif
+    
+    if is_key_pressed(KEY_DOWN)
+        y += 1
+    endif
+    
+    if is_key_pressed(KEY_LEFT)
+        x -= 1
+    endif
+    
+    if is_key_pressed(KEY_RIGHT)
+        x += 1
+    endif
+    
+    // Change color with SPACE
+    if is_key_pressed(KEY_SPACE)
+        color = (color + 1) % 16
+    endif
+    
+    // Exit with ESCAPE
+    if is_key_pressed(KEY_ESCAPE)
+        running = false
+    endif
+    
+    // Update display
+    flip_display()
+    
+    // Continue if running
+    if running
+        goto game_loop
+    endif
+
+// Game over
+say "Game Over!"
+exit

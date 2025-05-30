@@ -1,0 +1,43 @@
+// minimal_if_test.uws - Test nested if statements
+
+let x = 10
+let y = 5
+
+// Simple if
+if x > 5
+    say "x is greater than 5"
+endif
+
+// If-else
+if y > 10
+    say "y is greater than 10"
+else
+    say "y is not greater than 10"
+endif
+
+// If-elseif-else
+if x == 5
+    say "x is 5"
+elseif x == 10
+    say "x is 10"  
+else
+    say "x is something else"
+endif
+
+// Nested if statements
+if x > 0
+    say "x is positive"
+    if x > 5
+        say "x is greater than 5"
+        if x == 10
+            say "x is exactly 10"
+        endif
+    else
+        say "x is between 0 and 5"
+    endif
+else
+    say "x is not positive"
+endif
+
+say "Test complete"
+exit

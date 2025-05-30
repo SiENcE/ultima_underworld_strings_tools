@@ -1,0 +1,405 @@
+// astro_wars.uws - Minimal Old School Space Shooter
+
+// Key constants
+let KEY_LEFT = 2
+let KEY_RIGHT = 3
+let KEY_SPACE = 4
+let KEY_ESCAPE = 6
+
+// Game state
+let game_running = true
+let score = 0
+let player_x = 60
+let player_y = 100
+
+// Player ship sprite (8x6)
+let player_ship = [
+    8, 6,
+    0, 0, 0, 1, 1, 0, 0, 0,  // Top
+    0, 0, 1, 1, 1, 1, 0, 0,  // 
+    0, 1, 1, 2, 2, 1, 1, 0,  // Body with red core
+    1, 1, 1, 2, 2, 1, 1, 1,  // 
+    0, 1, 0, 1, 1, 0, 1, 0,  // Wings
+    1, 0, 0, 0, 0, 0, 0, 1   // Engine flames
+]
+
+// Enemy ship sprite (6x4)
+let enemy_ship = [
+    6, 4,
+    0, 2, 2, 2, 2, 0,  // Red enemy
+    2, 2, 1, 1, 2, 2,  // With white eyes
+    2, 2, 2, 2, 2, 2,  // 
+    0, 2, 0, 0, 2, 0   // Bottom
+]
+
+// Bullet sprite (2x3)
+let bullet_sprite = [
+    2, 3,
+    5, 5,  // Yellow bullet
+    5, 5,
+    5, 5
+]
+
+// Enemy bullet sprite (2x3) 
+let enemy_bullet_sprite = [
+    2, 3,
+    2, 2,  // Red bullet
+    2, 2,
+    2, 2
+]
+
+// Arrays for game objects (using multiple single values since we can't do 2D arrays easily)
+// Player bullets (max 5)
+let bullet1_x = -1
+let bullet1_y = -1
+let bullet2_x = -1
+let bullet2_y = -1
+let bullet3_x = -1
+let bullet3_y = -1
+let bullet4_x = -1
+let bullet4_y = -1
+let bullet5_x = -1
+let bullet5_y = -1
+
+// Enemies (max 8)
+let enemy1_x = -1
+let enemy1_y = -1
+let enemy2_x = -1
+let enemy2_y = -1
+let enemy3_x = -1
+let enemy3_y = -1
+let enemy4_x = -1
+let enemy4_y = -1
+let enemy5_x = -1
+let enemy5_y = -1
+let enemy6_x = -1
+let enemy6_y = -1
+let enemy7_x = -1
+let enemy7_y = -1
+let enemy8_x = -1
+let enemy8_y = -1
+
+// Enemy bullets (max 3)
+let ebullet1_x = -1
+let ebullet1_y = -1
+let ebullet2_x = -1
+let ebullet2_y = -1
+let ebullet3_x = -1
+let ebullet3_y = -1
+
+// Timers
+let enemy_spawn_timer = 0
+let shoot_timer = 0
+let enemy_shoot_timer = 0
+
+say "=== ASTRO WARS ==="
+say "Arrow keys to move, SPACE to shoot"
+say "ESC to quit. Good luck!"
+
+// Initialize some enemies
+enemy1_x = 20
+enemy1_y = 10
+enemy2_x = 60
+enemy2_y = 5
+enemy3_x = 100
+enemy3_y = 15
+
+// Main game loop
+label game_loop
+    // Clear screen (space black)
+    clear_screen(0)
+    
+    // Handle input
+    if is_key_pressed(KEY_LEFT)
+        if player_x > 0
+            player_x -= 2
+        endif
+    endif
+    
+    if is_key_pressed(KEY_RIGHT)
+        if player_x < 120
+            player_x += 2
+        endif
+    endif
+    
+    // Shooting (with timer to prevent spam)
+    shoot_timer += 1
+    if is_key_pressed(KEY_SPACE)
+        if shoot_timer >= 10
+            shoot_timer = 0
+            // Find empty bullet slot
+            if bullet1_x == -1
+                bullet1_x = player_x + 3
+                bullet1_y = player_y - 5
+            elseif bullet2_x == -1
+                bullet2_x = player_x + 3
+                bullet2_y = player_y - 5
+            elseif bullet3_x == -1
+                bullet3_x = player_x + 3
+                bullet3_y = player_y - 5
+            endif
+        endif
+    endif
+    
+    // Exit check
+    if is_key_pressed(KEY_ESCAPE)
+        game_running = false
+    endif
+    
+    // Update player bullets
+    if bullet1_x != -1
+        bullet1_y -= 4
+        if bullet1_y < 0
+            bullet1_x = -1
+            bullet1_y = -1
+        endif
+    endif
+    
+    if bullet2_x != -1
+        bullet2_y -= 4
+        if bullet2_y < 0
+            bullet2_x = -1
+            bullet2_y = -1
+        endif
+    endif
+    
+    if bullet3_x != -1
+        bullet3_y -= 4
+        if bullet3_y < 0
+            bullet3_x = -1
+            bullet3_y = -1
+        endif
+    endif
+    
+    // Update enemies
+    if enemy1_x != -1
+        enemy1_y += 1
+        if enemy1_y > 128
+            enemy1_x = -1
+            enemy1_y = -1
+        endif
+    endif
+    
+    if enemy2_x != -1
+        enemy2_y += 1
+        if enemy2_y > 128
+            enemy2_x = -1
+            enemy2_y = -1
+        endif
+    endif
+    
+    if enemy3_x != -1
+        enemy3_y += 1
+        if enemy3_y > 128
+            enemy3_x = -1
+            enemy3_y = -1
+        endif
+    endif
+    
+    if enemy4_x != -1
+        enemy4_y += 1
+        if enemy4_y > 128
+            enemy4_x = -1
+            enemy4_y = -1
+        endif
+    endif
+    
+    // Spawn new enemies
+    enemy_spawn_timer += 1
+    if enemy_spawn_timer >= 60
+        enemy_spawn_timer = 0
+        let spawn_x = random(110) + 5
+        
+        // Find empty enemy slot
+        if enemy1_x == -1
+            enemy1_x = spawn_x
+            enemy1_y = 0
+        elseif enemy2_x == -1
+            enemy2_x = spawn_x
+            enemy2_y = 0
+        elseif enemy3_x == -1
+            enemy3_x = spawn_x
+            enemy3_y = 0
+        elseif enemy4_x == -1
+            enemy4_x = spawn_x
+            enemy4_y = 0
+        endif
+    endif
+    
+    // Enemy shooting
+    enemy_shoot_timer += 1
+    if enemy_shoot_timer >= 90
+        enemy_shoot_timer = 0
+        // Enemy 1 shoots
+        if enemy1_x != -1
+            if ebullet1_x == -1
+                ebullet1_x = enemy1_x + 2
+                ebullet1_y = enemy1_y + 4
+            endif
+        endif
+    endif
+    
+    // Update enemy bullets
+    if ebullet1_x != -1
+        ebullet1_y += 3
+        if ebullet1_y > 128
+            ebullet1_x = -1
+            ebullet1_y = -1
+        endif
+    endif
+    
+    // Collision detection - bullets vs enemies
+    if bullet1_x != -1
+        if enemy1_x != -1
+            if bullet1_x >= enemy1_x
+                if bullet1_x <= enemy1_x + 6
+                    if bullet1_y >= enemy1_y
+                        if bullet1_y <= enemy1_y + 4
+                            // Hit!
+                            bullet1_x = -1
+                            bullet1_y = -1
+                            enemy1_x = -1
+                            enemy1_y = -1
+                            score += 10
+                        endif
+                    endif
+                endif
+            endif
+        endif
+        
+        // Check vs enemy2
+        if enemy2_x != -1
+            if bullet1_x >= enemy2_x
+                if bullet1_x <= enemy2_x + 6
+                    if bullet1_y >= enemy2_y
+                        if bullet1_y <= enemy2_y + 4
+                            bullet1_x = -1
+                            bullet1_y = -1
+                            enemy2_x = -1
+                            enemy2_y = -1
+                            score += 10
+                        endif
+                    endif
+                endif
+            endif
+        endif
+    endif
+    
+    // Similar collision for bullet2
+    if bullet2_x != -1
+        if enemy1_x != -1
+            if bullet2_x >= enemy1_x
+                if bullet2_x <= enemy1_x + 6
+                    if bullet2_y >= enemy1_y
+                        if bullet2_y <= enemy1_y + 4
+                            bullet2_x = -1
+                            bullet2_y = -1
+                            enemy1_x = -1
+                            enemy1_y = -1
+                            score += 10
+                        endif
+                    endif
+                endif
+            endif
+        endif
+    endif
+    
+    // Collision detection - enemy bullets vs player
+    if ebullet1_x != -1
+        if ebullet1_x >= player_x
+            if ebullet1_x <= player_x + 8
+                if ebullet1_y >= player_y
+                    if ebullet1_y <= player_y + 6
+                        // Player hit - game over!
+                        goto game_over
+                    endif
+                endif
+            endif
+        endif
+    endif
+    
+    // Draw everything
+    // Draw stars background
+    set_pixel(10, 20, 1)
+    set_pixel(30, 5, 1)
+    set_pixel(70, 15, 1)
+    set_pixel(90, 25, 1)
+    set_pixel(50, 35, 1)
+    set_pixel(15, 50, 1)
+    set_pixel(85, 45, 1)
+    set_pixel(25, 70, 1)
+    
+    // Draw player
+    draw_sprite(player_x, player_y, player_ship)
+    
+    // Draw enemies
+    if enemy1_x != -1
+        draw_sprite(enemy1_x, enemy1_y, enemy_ship)
+    endif
+    if enemy2_x != -1
+        draw_sprite(enemy2_x, enemy2_y, enemy_ship)
+    endif
+    if enemy3_x != -1
+        draw_sprite(enemy3_x, enemy3_y, enemy_ship)
+    endif
+    if enemy4_x != -1
+        draw_sprite(enemy4_x, enemy4_y, enemy_ship)
+    endif
+    
+    // Draw player bullets
+    if bullet1_x != -1
+        draw_sprite(bullet1_x, bullet1_y, bullet_sprite)
+    endif
+    if bullet2_x != -1
+        draw_sprite(bullet2_x, bullet2_y, bullet_sprite)
+    endif
+    if bullet3_x != -1
+        draw_sprite(bullet3_x, bullet3_y, bullet_sprite)
+    endif
+    
+    // Draw enemy bullets
+    if ebullet1_x != -1
+        draw_sprite(ebullet1_x, ebullet1_y, enemy_bullet_sprite)
+    endif
+    
+    // Draw score (simple representation)
+    let score_tens = score / 10
+    let score_ones = score % 10
+    fill_rect(5, 5, 2, 8, 1)  // Simple score display
+    
+    // Update display
+    flip_display()
+    
+    // Continue game loop
+    if game_running
+        goto game_loop
+    endif
+
+label game_over
+    clear_screen(0)
+    
+    // Draw "GAME OVER" using simple rectangles
+    fill_rect(20, 40, 20, 4, 2)  // G
+    fill_rect(45, 40, 15, 4, 2)  // A
+    fill_rect(65, 40, 20, 4, 2)  // M
+    fill_rect(90, 40, 15, 4, 2)  // E
+    
+    fill_rect(30, 60, 15, 4, 2)  // O
+    fill_rect(50, 60, 15, 4, 2)  // V
+    fill_rect(70, 60, 15, 4, 2)  // E
+    fill_rect(90, 60, 15, 4, 2)  // R
+    
+    flip_display()
+    
+    say "GAME OVER!"
+    say "Final Score: " + score
+    
+label wait_exit
+    if is_key_pressed(KEY_ESCAPE)
+        goto exit_game
+    endif
+    goto wait_exit
+
+label exit_game
+say "Thanks for playing Astro Wars!"
+exit

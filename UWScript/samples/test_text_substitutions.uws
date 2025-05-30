@@ -1,0 +1,21 @@
+// Test text substitutions
+let health = 75
+let mana = 50
+let player_name = "Avatar"
+
+// These should be automatically converted to text substitutions
+say "Health: " + health
+say "Mana: " + mana  
+say "Player name: " + player_name
+
+// Test in different contexts
+let damage = 15
+say damage + " damage taken!"
+
+if health > 50
+    say "Health is good at " + health
+else
+    say "Health is low at " + health
+endif
+
+exit

@@ -1,0 +1,162 @@
+// Comprehensive test program to validate the temporary variable fix
+// This tests multiple graphics functions in rapid succession to ensure
+// no temporary variable conflicts occur
+
+// Define constants
+let BLACK = 0
+let WHITE = 1
+let RED = 2
+let GREEN = 3
+let BLUE = 4
+let YELLOW = 5
+
+// Multiple sprites to test array handling
+let small_sprite = [
+    4, 4,
+    1, 1, 1, 1,
+    1, 2, 2, 1,
+    1, 2, 2, 1,
+    1, 1, 1, 1
+]
+
+let medium_sprite = [
+    6, 6,
+    0, 1, 1, 1, 1, 0,
+    1, 2, 1, 1, 2, 1,
+    1, 1, 1, 1, 1, 1,
+    1, 1, 3, 3, 1, 1,
+    1, 1, 1, 1, 1, 1,
+    0, 1, 1, 1, 1, 0
+]
+
+let large_sprite = [
+    8, 8,
+    0, 0, 1, 1, 1, 1, 0, 0,
+    0, 1, 2, 1, 1, 2, 1, 0,
+    1, 1, 1, 1, 1, 1, 1, 1,
+    1, 1, 1, 3, 3, 1, 1, 1,
+    1, 1, 3, 1, 1, 3, 1, 1,
+    1, 1, 1, 3, 3, 1, 1, 1,
+    0, 1, 1, 1, 1, 1, 1, 0,
+    0, 0, 1, 1, 1, 1, 0, 0
+]
+
+// Animation variables
+let frame = 0
+let x1 = 10
+let y1 = 10
+let x2 = 50
+let y2 = 30
+let x3 = 90
+let y3 = 50
+
+// Direction vectors
+let dx1 = 1
+let dy1 = 1
+let dx2 = -1
+let dy2 = 1
+let dx3 = 1
+let dy3 = -1
+
+// Test counter
+let test_iteration = 0
+let max_iterations = 500  // Run for 500 frames to stress test
+
+say "Starting comprehensive graphics test..."
+say "This will test multiple sprites and graphics functions simultaneously"
+say "Press ESC to exit early"
+
+label test_loop
+    // Increment test counter
+    test_iteration += 1
+    
+    // Clear screen - this allocates temp variables
+    clear_screen(BLACK)
+    
+    // Draw background elements - multiple function calls in sequence
+    // Each of these would conflict with old temp variable system
+    draw_line(0, 0, 127, 0, WHITE)        // Top border
+    draw_line(0, 127, 127, 127, WHITE)    // Bottom border  
+    draw_line(0, 0, 0, 127, WHITE)        // Left border
+    draw_line(127, 0, 127, 127, WHITE)    // Right border
+    
+    // Draw some geometric shapes
+    draw_rect(20, 20, 10, 10, YELLOW)
+    fill_rect(40, 20, 8, 8, RED)
+    draw_circle(70, 25, 5, GREEN)
+    
+    // Draw multiple sprites at different positions
+    // This is the critical test - multiple sprite calls with different parameters
+    draw_sprite(x1, y1, small_sprite)
+    draw_sprite(x2, y2, medium_sprite)  
+    draw_sprite(x3, y3, large_sprite)
+    
+    // Additional graphics calls to stress the temp variable system
+    set_pixel(x1 + 20, y1 + 10, RED)
+    set_pixel(x2 + 20, y2 + 10, GREEN)
+    set_pixel(x3 + 20, y3 + 10, BLUE)
+    
+    // Draw some text-like patterns
+    fill_rect(5, 100, 2, 8, WHITE)   // Letter "I"
+    fill_rect(10, 100, 6, 2, WHITE)  // Letter "T" top
+    fill_rect(12, 100, 2, 8, WHITE)  // Letter "T" stem
+    
+    // Update sprite positions (bouncing animation)
+    x1 += dx1
+    y1 += dy1
+    x2 += dx2  
+    y2 += dy2
+    x3 += dx3
+    y3 += dy3
+    
+    // Bounce off edges
+    if x1 <= 0 or x1 >= 120
+        dx1 = 0 - dx1
+    endif
+    if y1 <= 0 or y1 >= 120
+        dy1 = 0 - dy1
+    endif
+    
+    if x2 <= 0 or x2 >= 115
+        dx2 = 0 - dx2
+    endif  
+    if y2 <= 0 or y2 >= 115
+        dy2 = 0 - dy2
+    endif
+    
+    if x3 <= 0 or x3 >= 110
+        dx3 = 0 - dx3
+    endif
+    if y3 <= 0 or y3 >= 110
+        dy3 = 0 - dy3
+    endif
+    
+    // Update display - this is where the temp variables must still be intact
+    flip_display()
+    
+    // Check for exit conditions
+    if is_key_pressed(6)  // ESC key
+        goto test_end
+    endif
+    
+    //if test_iteration >= max_iterations
+    //    goto test_end
+    //endif
+    
+    // Continue the test
+    goto test_loop
+
+label test_end
+say "Test completed successfully!"
+say "If you saw smooth sprite animation with no corruption,"
+say "then the temporary variable fix is working correctly."
+
+// Final test - complex nested function calls
+clear_screen(BLUE)
+draw_sprite(60, 60, large_sprite)
+draw_circle(64, 64, 15, YELLOW)
+draw_rect(55, 55, 18, 18, RED)
+flip_display()
+
+say "Final rendering complete. Press any key to exit."
+exit

@@ -1,0 +1,48 @@
+// Simple Greeting - Compatible version
+let player_visited = 0
+
+// Begin conversation
+say "Hello, traveler! Welcome to my humble abode."
+
+if player_visited == 0
+    say "I don't believe we've met before."
+    player_visited = 1
+else
+    say "Good to see you again!"
+endif
+
+menu choice [
+    "Who are you?",
+    "What is this place?",
+    "I need to go now."
+]
+
+if choice == 1
+    say "I am the Gray Goblin, a collector of ancient artifacts."
+    say "I've lived in these caves for centuries, studying the old ways."
+elseif choice == 2
+    say "This is my workshop, hidden deep within the Stygian Abyss."
+    say "Few adventurers make it this far. You must be quite resourceful."
+else
+    say "Farewell then. Perhaps our paths will cross again."
+    exit
+endif
+
+say "Is there anything else you'd like to know?"
+menu more_questions [
+    "Tell me about the abyss",
+    "Do you have any items to trade?",
+    "No, I must be going."
+]
+
+if more_questions == 1
+    say "The abyss is an ancient testing ground, created by beings far greater than you or I."
+    say "Its depths hold secrets beyond your imagination."
+elseif more_questions == 2
+    say "I have a few trinkets you might find useful..."
+    say "But I don't think you have anything I want in exchange. Come back when you find something... interesting."
+else
+    say "Very well. Safe journeys, traveler."
+endif
+
+exit

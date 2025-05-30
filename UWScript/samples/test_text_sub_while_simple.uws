@@ -1,0 +1,13 @@
+// Simple while loop test with text substitutions
+let counter = 3
+
+say "Starting countdown"
+
+while counter > 0
+    say "Count: " + counter
+    counter -= 1
+endwhile
+
+say "Countdown finished"
+
+exit

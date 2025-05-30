@@ -1,0 +1,153 @@
+// sprite_animation.uws - Advanced Sprite Animation Demo
+
+// Constants
+let KEY_ESCAPE = 6
+
+// Animation frames for a walking character (4 frames)
+let walk_frame1 = [
+    8, 8,
+    0, 0, 1, 1, 1, 1, 0, 0,  // Head
+    0, 1, 1, 2, 2, 1, 1, 0,  // Face with eyes
+    0, 1, 1, 1, 1, 1, 1, 0,  // 
+    0, 0, 3, 3, 3, 3, 0, 0,  // Body
+    0, 0, 3, 3, 3, 3, 0, 0,  // 
+    0, 0, 3, 0, 0, 3, 0, 0,  // Legs apart
+    0, 0, 4, 0, 0, 4, 0, 0,  // Feet
+    0, 0, 0, 0, 0, 0, 0, 0   // Ground
+]
+
+let walk_frame2 = [
+    8, 8,
+    0, 0, 1, 1, 1, 1, 0, 0,  // Head
+    0, 1, 1, 2, 2, 1, 1, 0,  // Face with eyes
+    0, 1, 1, 1, 1, 1, 1, 0,  // 
+    0, 0, 3, 3, 3, 3, 0, 0,  // Body
+    0, 0, 3, 3, 3, 3, 0, 0,  // 
+    0, 0, 0, 3, 3, 0, 0, 0,  // Legs together
+    0, 0, 0, 4, 4, 0, 0, 0,  // Feet together
+    0, 0, 0, 0, 0, 0, 0, 0   // Ground
+]
+
+let walk_frame3 = [
+    8, 8,
+    0, 0, 1, 1, 1, 1, 0, 0,  // Head
+    0, 1, 1, 2, 2, 1, 1, 0,  // Face with eyes
+    0, 1, 1, 1, 1, 1, 1, 0,  // 
+    0, 0, 3, 3, 3, 3, 0, 0,  // Body
+    0, 0, 3, 3, 3, 3, 0, 0,  // 
+    0, 0, 3, 0, 0, 3, 0, 0,  // Legs apart (opposite)
+    0, 0, 4, 0, 0, 4, 0, 0,  // Feet
+    0, 0, 0, 0, 0, 0, 0, 0   // Ground
+]
+
+let walk_frame4 = [
+    8, 8,
+    0, 0, 1, 1, 1, 1, 0, 0,  // Head
+    0, 1, 1, 2, 2, 1, 1, 0,  // Face with eyes
+    0, 1, 1, 1, 1, 1, 1, 0,  // 
+    0, 0, 3, 3, 3, 3, 0, 0,  // Body
+    0, 0, 3, 3, 3, 3, 0, 0,  // 
+    0, 0, 0, 3, 3, 0, 0, 0,  // Legs together
+    0, 0, 0, 4, 4, 0, 0, 0,  // Feet together
+    0, 0, 0, 0, 0, 0, 0, 0   // Ground
+]
+
+// Array of animation frames (note: this would be array of arrays)
+// For now we'll use frame indices and switch manually
+let current_frame = 0
+let frame_timer = 0
+let animation_speed = 10  // Frames per animation frame
+
+// Character position
+let char_x = 10
+let char_y = 60
+let direction = 1  // 1 = right, -1 = left
+
+// Background elements
+let tree_sprite = [
+    6, 12,
+    0, 0, 11, 11, 0, 0,  // Tree top
+    0, 11, 11, 11, 11, 0,  // 
+    11, 11, 11, 11, 11, 11,  // 
+    0, 11, 11, 11, 11, 0,  // 
+    0, 0, 11, 11, 0, 0,  // 
+    0, 0, 13, 13, 0, 0,  // Trunk
+    0, 0, 13, 13, 0, 0,  // 
+    0, 0, 13, 13, 0, 0,  // 
+    0, 0, 13, 13, 0, 0,  // 
+    0, 0, 13, 13, 0, 0,  // 
+    0, 0, 13, 13, 0, 0,  // 
+    0, 0, 13, 13, 0, 0   // 
+]
+
+let cloud_sprite = [
+    12, 4,
+    0, 0, 9, 9, 9, 9, 9, 9, 0, 0, 0, 0,  // Cloud
+    0, 9, 9, 9, 9, 9, 9, 9, 9, 9, 0, 0,  // 
+    9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 0,  // 
+    0, 9, 9, 9, 9, 9, 9, 9, 9, 0, 0, 0   // 
+]
+
+say "Advanced Sprite Animation Demo"
+say "Watch the walking character animation!"
+say "Press ESCAPE to exit."
+
+// Main animation loop
+label animation_loop
+    // Clear screen with sky blue
+    clear_screen(7)
+    
+    // Draw background elements
+    draw_sprite(90, 40, tree_sprite)
+    draw_sprite(20, 5, cloud_sprite)
+    draw_sprite(70, 8, cloud_sprite)
+    
+    // Draw ground
+    fill_rect(0, 90, 128, 38, 11)
+    
+    // Update frame timer
+    frame_timer += 1
+    if frame_timer >= animation_speed
+        frame_timer = 0
+        current_frame += 1
+        if current_frame >= 4
+            current_frame = 0
+        endif
+    endif
+    
+    // Draw the current animation frame
+    if current_frame == 0
+        draw_sprite(char_x, char_y, walk_frame1)
+    elseif current_frame == 1
+        draw_sprite(char_x, char_y, walk_frame2)
+    elseif current_frame == 2
+        draw_sprite(char_x, char_y, walk_frame3)
+    else
+        draw_sprite(char_x, char_y, walk_frame4)
+    endif
+    
+    // Move character
+    char_x += direction
+    
+    // Bounce at edges
+    if char_x >= 110
+        direction = -1
+    endif
+    if char_x <= 10
+        direction = 1
+    endif
+    
+    // Update display
+    flip_display()
+    
+    // Check for exit
+    if is_key_pressed(KEY_ESCAPE)
+        goto exit_demo
+    endif
+    
+    // Continue animation
+    goto animation_loop
+
+label exit_demo
+say "Animation demo finished!"
+exit
